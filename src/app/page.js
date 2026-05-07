@@ -1,6 +1,6 @@
 import OfferCard from "@/components/OfferCard";
 import { prisma } from "@/lib/db";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame, TrendingUp, Sparkles, Zap } from "lucide-react";
 
 async function getOffers() {
   try {
@@ -9,69 +9,94 @@ async function getOffers() {
     });
   } catch (e) {
     console.error("Error fetching offers:", e);
-    return []; // Return empty if DB is not ready
+    return [];
   }
 }
 
 export default async function Home() {
   const offers = await getOffers();
 
-  // Mock data if no offers in DB
+  // Updated Mock data with better images
   const displayOffers = offers.length > 0 ? offers : [
     {
       id: "1",
-      title: "Consola PlayStation 5 con God of War Ragnarök",
-      price: 10500,
-      originalPrice: 13999,
-      discount: 25,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_603893-MLA52538153406_112022-O.webp",
+      title: "Apple iPhone 15 Pro Max (256 GB) - Titanio Natural",
+      price: 24999,
+      originalPrice: 28999,
+      discount: 13,
+      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_615873-MLU72007534374_092023-O.webp",
       affiliateUrl: "https://www.mercadolibre.com.mx",
       category: "Tecnología"
     },
     {
       id: "2",
-      title: "Silla Gamer Profesional Ergonómica Reclinable",
-      price: 2499,
-      originalPrice: 4500,
-      discount: 44,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_675276-MLA48098270559_112021-O.webp",
+      title: "Tenis Nike Air Force 1 '07 - Blanco Original",
+      price: 1899,
+      originalPrice: 2499,
+      discount: 24,
+      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_896350-MLM51025537542_082022-O.webp",
+      affiliateUrl: "https://www.mercadolibre.com.mx",
+      category: "Moda"
+    },
+    {
+      id: "3",
+      title: "Monitor Gamer Samsung Odyssey G5 27\" Curvo 144Hz",
+      price: 4500,
+      originalPrice: 6500,
+      discount: 30,
+      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
+      affiliateUrl: "https://www.mercadolibre.com.mx",
+      category: "Gamer"
+    },
+    {
+      id: "4",
+      title: "Cafetera Nespresso Vertuo Pop+ con 12 Capsulas",
+      price: 1599,
+      originalPrice: 2999,
+      discount: 46,
+      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_918073-MLM54911364401_042023-O.webp",
       affiliateUrl: "https://www.mercadolibre.com.mx",
       category: "Hogar"
     }
   ];
 
   return (
-    <div className="container animate-fade">
-      <header className="mb-12 text-center py-12 border-b border-white/5">
-        <h1 className="text-5xl font-extrabold mb-4">
-          <span className="text-white">Las mejores </span>
-          <span className="gradient-text">ofertas del día</span>
+    <div className="container">
+      <section className="hero animate-fade">
+        <div className="badge">
+          <Sparkles className="text-primary" size={16} />
+          <span>¡Nuevas ofertas cada hora!</span>
+        </div>
+        <h1 className="text-6xl font-black mb-6 leading-tight">
+          Encuentra las mejores <br/>
+          <span className="gradient-text">gangas de internet</span>
         </h1>
-        <p className="text-text-muted text-lg max-w-2xl mx-auto">
-          Seleccionamos manualmente las mejores promociones de Mercado Libre para que ahorres en cada compra.
+        <p className="text-text-muted text-xl max-w-2xl mx-auto mb-10">
+          En <strong>PromoAdictos</strong> rastreamos Mercado Libre las 24 horas para traerte descuentos reales. Sin trucos, solo ahorros.
         </p>
-      </header>
-
-      <div className="flex items-center gap-3 mb-8">
-        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full font-bold">
-          <Flame size={20} />
-          Destacados
+        
+        <div className="flex justify-center gap-4">
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 text-primary rounded-2xl font-bold text-sm border border-primary/20">
+            <Flame size={18} strokeWidth={2.5} />
+            Hot Deals
+          </div>
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-secondary/10 text-secondary rounded-2xl font-bold text-sm border border-secondary/20">
+            <Zap size={18} strokeWidth={2.5} />
+            Flash Sales
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 text-secondary rounded-full font-bold">
-          <TrendingUp size={20} />
-          Más vendidos
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="offer-grid">
         {displayOffers.map((offer) => (
           <OfferCard key={offer.id} offer={offer} />
         ))}
       </div>
 
       {displayOffers.length === 0 && (
-        <div className="text-center py-20 bg-surface/50 rounded-3xl border border-dashed border-white/10">
-          <p className="text-text-muted text-xl">No hay ofertas disponibles por el momento.</p>
+        <div className="text-center py-24 bg-surface/30 rounded-[3rem] border-2 border-dashed border-white/5 mt-12">
+          <Sparkles className="text-primary/30 mx-auto mb-4" size={48} />
+          <p className="text-text-muted text-xl font-medium">Preparando nuevas ofertas para ti...</p>
         </div>
       )}
     </div>

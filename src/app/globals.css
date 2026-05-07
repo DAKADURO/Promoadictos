@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --primary: #FF6B00; /* Vibrant Orange */
+  --primary: #FF6B00;
   --primary-glow: rgba(255, 107, 0, 0.3);
-  --secondary: #6D28D9; /* Deep Purple */
-  --background: #0F172A; /* Slate 900 */
-  --surface: #1E293B; /* Slate 800 */
-  --text: #F8FAFC; /* Slate 50 */
-  --text-muted: #94A3B8; /* Slate 400 */
-  --accent: #F43F5E; /* Rose 500 */
-  --glass: rgba(30, 41, 59, 0.7);
-  --border: rgba(255, 255, 255, 0.1);
-  --radius: 1rem;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --secondary: #7C3AED;
+  --background: #020617; /* Darker Slate */
+  --surface: #0F172A;
+  --surface-hover: #1E293B;
+  --text: #F8FAFC;
+  --text-muted: #64748B;
+  --accent: #F43F5E;
+  --border: rgba(255, 255, 255, 0.08);
+  --radius: 1.25rem;
+  --transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 * {
@@ -26,59 +26,59 @@ body {
   background-color: var(--background);
   color: var(--text);
   line-height: 1.6;
-  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Color Utilities */
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-white { color: white; }
+.text-muted { color: var(--text-muted); }
+.bg-primary { background-color: var(--primary); }
+.bg-surface { background-color: var(--surface); }
 
 /* Glassmorphism */
 .glass {
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-/* Utility Classes */
+/* Layout */
 .container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
 }
 
+/* Components */
 .gradient-text {
-  background: linear-gradient(135deg, var(--primary), #FFB800);
+  background: linear-gradient(135deg, #FF6B00 0%, #FFB800 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  font-weight: 800;
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #FF8A00);
   color: white;
-  padding: 0.75rem 1.5rem;
+  padding: 0.8rem 1.6rem;
   border-radius: var(--radius);
   border: none;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   text-decoration: none;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.2);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -10px var(--primary);
-  filter: brightness(1.1);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(255, 107, 0, 0.4);
 }
 
 .card {
@@ -87,27 +87,45 @@ body {
   border-radius: var(--radius);
   overflow: hidden;
   transition: var(--transition);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
 .card:hover {
-  transform: scale(1.02);
-  border-color: var(--primary);
+  transform: translateY(-8px);
+  border-color: rgba(255, 107, 0, 0.5);
+  box-shadow: 0 20px 40px -15px rgba(255, 107, 0, 0.15);
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Hero Section */
+.hero {
+  padding: 6rem 0;
+  text-align: center;
+  background: radial-gradient(circle at top center, rgba(255, 107, 0, 0.05) 0%, transparent 70%);
 }
 
-::-webkit-scrollbar-track {
-  background: var(--background);
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--surface);
-  border-radius: 10px;
+/* Grid */
+.offer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2.5rem;
+  margin-top: 2rem;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+@media (max-width: 640px) {
+  .hero { padding: 4rem 1rem; }
+  .container { padding: 0 1.25rem; }
+  .offer-grid { gap: 1.5rem; }
 }
