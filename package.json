@@ -23,7 +23,10 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "csstype": "^3.2.3",
     "eslint": "^9",
-    "eslint-config-next": "^15.1.11"
+    "eslint-config-next": "^15.1.11",
+    "typescript": "^6.0.3"
   }
 }
