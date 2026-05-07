@@ -5,14 +5,14 @@ import { Lock } from "lucide-react";
 
 export default function Navbar() {
   return (
-    <nav className="glass sticky top-0 z-[100] py-3">
+    <nav className="glass sticky top-0 z-[100] py-4">
       <div className="container flex justify-between items-center">
         <Link href="/" className="flex items-center gap-4 no-underline group">
-          <div className="relative w-12 h-12">
+          <div className="flex-shrink-0">
             <img 
               src="/logo.png" 
               alt="PromoAdictos Logo" 
-              className="w-full h-full object-contain filter drop-shadow(0 0 8px rgba(255,107,0,0.5)) group-hover:scale-110 transition-transform"
+              className="h-12 w-auto object-contain filter drop-shadow(0 0 8px rgba(255,107,0,0.3)) group-hover:scale-110 transition-transform"
             />
           </div>
           <div className="flex flex-col">
@@ -28,7 +28,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <Link 
             href="/admin" 
-            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 border border-white/5 text-white/50 hover:text-primary hover:border-primary/30 transition-all shadow-inner"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 border border-white/5 text-white/50 hover:text-primary hover:border-primary/30 transition-all"
           >
             <Lock size={20} />
           </Link>
