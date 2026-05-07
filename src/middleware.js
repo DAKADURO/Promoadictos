@@ -1,9 +1,25 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { NextResponse } from "next/server";
 
-export default NextAuth(authConfig).auth;
+export function middleware(request) {
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+
+  if (isAdminRoute) {
+    // Check for the NextAuth session cookie (both secure and non-secure variants)
+    const sessionToken =
+      request.cookies.get("authjs.session-token") ||
+      request.cookies.get("__Secure-authjs.session-token") ||
+      request.cookies.get("next-auth.session-token") ||
+      request.cookies.get("__Secure-next-auth.session-token");
+
+    if (!sessionToken) {
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+  matcher: ["/admin/:path*"],
 };
