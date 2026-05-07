@@ -1,93 +1,128 @@
 import OfferCard from "@/components/OfferCard";
 import { prisma } from "@/lib/db";
-import { Sparkles, ArrowDown } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 async function getOffers() {
   try {
-    return await prisma.offer.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (e) {
-    console.error("Error fetching offers:", e);
+    return await prisma.offer.findMany({ orderBy: { createdAt: "desc" } });
+  } catch {
     return [];
   }
 }
 
-export default async function Home() {
-  const offers = await getOffers();
+const MOCK_OFFERS = [
+  {
+    id: "1",
+    title: "Apple iPhone 15 Pro Max 256 GB — Titanio Natural",
+    price: 24999,
+    originalPrice: 28999,
+    discount: 13,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_615873-MLU72007534374_092023-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Tecnología",
+  },
+  {
+    id: "2",
+    title: "Nike Air Force 1 '07 Blanco — Original",
+    price: 1899,
+    originalPrice: 2499,
+    discount: 24,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_896350-MLM51025537542_082022-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Moda",
+  },
+  {
+    id: "3",
+    title: "Monitor Gamer Samsung Odyssey G5 27\" Curvo 144 Hz",
+    price: 4500,
+    originalPrice: 6500,
+    discount: 30,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Gaming",
+  },
+  {
+    id: "4",
+    title: "Cafetera Nespresso Vertuo Pop+ + 12 Cápsulas de regalo",
+    price: 1599,
+    originalPrice: 2999,
+    discount: 46,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_918073-MLM54911364401_042023-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Hogar",
+  },
+  {
+    id: "5",
+    title: "Sony WH-1000XM5 — Auriculares ANC Inalámbricos",
+    price: 5999,
+    originalPrice: 8499,
+    discount: 29,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_791685-MLM52148448442_102022-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Audio",
+  },
+  {
+    id: "6",
+    title: "Silla Gamer Razer Iskur Ergonómica — Negro",
+    price: 6499,
+    originalPrice: 9999,
+    discount: 35,
+    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_986767-MLA52438665282_112022-O.webp",
+    affiliateUrl: "https://www.mercadolibre.com.mx",
+    category: "Gaming",
+  },
+];
 
-  const displayOffers = offers.length > 0 ? offers : [
-    {
-      id: "1",
-      title: "Apple iPhone 15 Pro Max (256 GB) - Titanio Natural",
-      price: 24999,
-      originalPrice: 28999,
-      discount: 13,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_615873-MLU72007534374_092023-O.webp",
-      affiliateUrl: "https://www.mercadolibre.com.mx",
-      category: "Tecnología"
-    },
-    {
-      id: "2",
-      title: "Tenis Nike Air Force 1 '07 - Blanco Original",
-      price: 1899,
-      originalPrice: 2499,
-      discount: 24,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_896350-MLM51025537542_082022-O.webp",
-      affiliateUrl: "https://www.mercadolibre.com.mx",
-      category: "Moda"
-    },
-    {
-      id: "3",
-      title: "Monitor Gamer Samsung Odyssey G5 27\" Curvo 144Hz",
-      price: 4500,
-      originalPrice: 6500,
-      discount: 30,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
-      affiliateUrl: "https://www.mercadolibre.com.mx",
-      category: "Gamer"
-    }
-  ];
+export default async function Home() {
+  const dbOffers = await getOffers();
+  const offers = dbOffers.length > 0 ? dbOffers : MOCK_OFFERS;
 
   return (
-    <div className="container">
-      <section className="hero animate-fade">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-[0.3em] mb-12">
-          <Sparkles size={14} />
-          Exclusivo de PromoAdictos
+    <>
+      {/* ── HERO ────────────────────────────────── */}
+      <section className="hero animate-up">
+        <div className="badge">
+          <span className="dot" />
+          Actualizado al momento
         </div>
-        
-        <h1>
-          EL PARAÍSO DE LAS <br/>
-          <span className="gradient-text">OFERTAS ADICTIVAS</span>
-        </h1>
-        
-        <p className="text-white/40 text-lg max-w-xl mx-auto mt-8 mb-16 font-medium leading-relaxed">
-          No buscamos ofertas, las cazamos. Productos de Mercado Libre con descuentos que parecen un error.
-        </p>
 
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-px h-16 bg-gradient-to-b from-primary to-transparent" />
-          <ArrowDown className="text-primary animate-bounce" size={24} />
-        </div>
+        <h1 className="hero-title font-display">
+          Las mejores ofertas<br />
+          de <span className="gradient-text">Mercado Libre</span>
+        </h1>
+
+        <p className="hero-sub">
+          Seleccionamos manualmente descuentos reales cada día. Sin spam, sin relleno. Solo las gangas que realmente valen la pena.
+        </p>
       </section>
 
-      <div className="offer-grid">
-        {displayOffers.map((offer) => (
-          <OfferCard key={offer.id} offer={offer} />
-        ))}
-      </div>
-
-      {displayOffers.length === 0 && (
-        <div className="text-center py-40">
-          <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/10">
-            <Sparkles className="text-primary/20" size={40} />
+      {/* ── OFFERS ──────────────────────────────── */}
+      <section style={{ padding: "0 0 7rem" }}>
+        <div className="container">
+          <div className="section-header">
+            <span className="section-dot" />
+            <span className="section-title">Ofertas Activas</span>
+            <span style={{ marginLeft:"auto", fontSize:"0.8rem", color:"var(--clr-muted)" }}>
+              {offers.length} productos
+            </span>
           </div>
-          <p className="text-white/20 text-xl font-black uppercase tracking-widest">
-            Rastreando gangas...
-          </p>
+
+          {offers.length > 0 ? (
+            <div className="offers-grid">
+              {offers.map((offer, i) => (
+                <div key={offer.id} style={{ animationDelay: `${i * 60}ms` }}>
+                  <OfferCard offer={offer} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <Sparkles size={40} style={{ margin:"0 auto 1rem", opacity:0.2 }} />
+              <p style={{ fontSize:"1rem", fontWeight:600 }}>Rastreando gangas…</p>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </section>
+    </>
   );
 }

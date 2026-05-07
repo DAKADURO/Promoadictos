@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 
 export const metadata = {
   title: "PromoAdictos | Las Mejores Ofertas de Mercado Libre",
-  description: "Encuentra productos con descuentos increíbles y ofertas exclusivas de Mercado Libre.",
+  description: "Descubre descuentos reales en Mercado Libre. Seleccionamos manualmente las mejores ofertas del día.",
 };
 
 export default function RootLayout({ children }) {
@@ -11,7 +11,7 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body>
         <Navbar />
-        <main className="pb-20">
+        <main>
           {children}
         </main>
       </body>
