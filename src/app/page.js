@@ -1,6 +1,6 @@
 import OfferCard from "@/components/OfferCard";
 import { prisma } from "@/lib/db";
-import { Flame, TrendingUp, Sparkles, Zap } from "lucide-react";
+import { Sparkles, ArrowDown } from "lucide-react";
 
 async function getOffers() {
   try {
@@ -16,7 +16,6 @@ async function getOffers() {
 export default async function Home() {
   const offers = await getOffers();
 
-  // Updated Mock data with better images
   const displayOffers = offers.length > 0 ? offers : [
     {
       id: "1",
@@ -47,43 +46,29 @@ export default async function Home() {
       imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
       affiliateUrl: "https://www.mercadolibre.com.mx",
       category: "Gamer"
-    },
-    {
-      id: "4",
-      title: "Cafetera Nespresso Vertuo Pop+ con 12 Capsulas",
-      price: 1599,
-      originalPrice: 2999,
-      discount: 46,
-      imageUrl: "https://http2.mlstatic.com/D_NQ_NP_918073-MLM54911364401_042023-O.webp",
-      affiliateUrl: "https://www.mercadolibre.com.mx",
-      category: "Hogar"
     }
   ];
 
   return (
     <div className="container">
       <section className="hero animate-fade">
-        <div className="badge">
-          <Sparkles className="text-primary" size={16} />
-          <span>¡Nuevas ofertas cada hora!</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-[0.3em] mb-12">
+          <Sparkles size={14} />
+          Exclusivo de PromoAdictos
         </div>
-        <h1 className="text-6xl font-black mb-6 leading-tight">
-          Encuentra las mejores <br/>
-          <span className="gradient-text">gangas de internet</span>
-        </h1>
-        <p className="text-text-muted text-xl max-w-2xl mx-auto mb-10">
-          En <strong>PromoAdictos</strong> rastreamos Mercado Libre las 24 horas para traerte descuentos reales. Sin trucos, solo ahorros.
-        </p>
         
-        <div className="flex justify-center gap-4">
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 text-primary rounded-2xl font-bold text-sm border border-primary/20">
-            <Flame size={18} strokeWidth={2.5} />
-            Hot Deals
-          </div>
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-secondary/10 text-secondary rounded-2xl font-bold text-sm border border-secondary/20">
-            <Zap size={18} strokeWidth={2.5} />
-            Flash Sales
-          </div>
+        <h1>
+          EL PARAÍSO DE LAS <br/>
+          <span className="gradient-text">OFERTAS ADICTIVAS</span>
+        </h1>
+        
+        <p className="text-white/40 text-lg max-w-xl mx-auto mt-8 mb-16 font-medium leading-relaxed">
+          No buscamos ofertas, las cazamos. Productos de Mercado Libre con descuentos que parecen un error.
+        </p>
+
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-px h-16 bg-gradient-to-b from-primary to-transparent" />
+          <ArrowDown className="text-primary animate-bounce" size={24} />
         </div>
       </section>
 
@@ -94,9 +79,13 @@ export default async function Home() {
       </div>
 
       {displayOffers.length === 0 && (
-        <div className="text-center py-24 bg-surface/30 rounded-[3rem] border-2 border-dashed border-white/5 mt-12">
-          <Sparkles className="text-primary/30 mx-auto mb-4" size={48} />
-          <p className="text-text-muted text-xl font-medium">Preparando nuevas ofertas para ti...</p>
+        <div className="text-center py-40">
+          <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/10">
+            <Sparkles className="text-primary/20" size={40} />
+          </div>
+          <p className="text-white/20 text-xl font-black uppercase tracking-widest">
+            Rastreando gangas...
+          </p>
         </div>
       )}
     </div>
