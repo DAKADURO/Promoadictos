@@ -25,7 +25,7 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/offers");
       const data = await res.json();
-      setOffers(data);
+      setOffers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {

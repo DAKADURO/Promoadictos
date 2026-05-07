@@ -9,7 +9,8 @@ export async function GET() {
     });
     return NextResponse.json(offers);
   } catch (error) {
-    return NextResponse.json({ error: "Error fetching offers" }, { status: 500 });
+    console.error("Prisma Error:", error);
+    return NextResponse.json({ error: "Error fetching offers", details: error.message }, { status: 500 });
   }
 }
 
