@@ -1,45 +1,51 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Link as LinkIcon, Image as ImageIcon, DollarSign, Tag, LogOut } from "lucide-react";
+import {
+  Plus, Trash2, Link as LinkIcon, Image as ImageIcon,
+  Tag, LogOut, Package, TrendingUp, DollarSign, CheckCircle, X
+} from "lucide-react";
 import { signOut } from "next-auth/react";
+
+const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Otros"];
+
+const EMPTY_FORM = {
+  title: "", price: "", originalPrice: "", discount: "",
+  imageUrl: "", affiliateUrl: "", category: "General",
+};
 
 export default function AdminPage() {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    title: "",
-    price: "",
-    originalPrice: "",
-    discount: "",
-    imageUrl: "",
-    affiliateUrl: "",
-    category: "General"
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    fetchOffers();
-  }, []);
+  useEffect(() => { fetchOffers(); }, []);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchOffers = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/offers");
       const data = await res.json();
       setOffers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setOffers([]); }
+    finally { setLoading(false); }
   };
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       const res = await fetch("/api/offers", {
         method: "POST",
@@ -51,192 +57,311 @@ export default function AdminPage() {
           discount: formData.discount ? parseInt(formData.discount) : null,
         }),
       });
-
       if (res.ok) {
-        setFormData({
-          title: "",
-          price: "",
-          originalPrice: "",
-          discount: "",
-          imageUrl: "",
-          affiliateUrl: "",
-          category: "General"
-        });
+        setFormData(EMPTY_FORM);
         fetchOffers();
+        showToast("¡Oferta publicada exitosamente!");
+      } else {
+        showToast("Error al guardar", "error");
       }
-    } catch (err) {
-      alert("Error al guardar la oferta");
-    }
+    } catch { showToast("Error de conexión", "error"); }
+    finally { setSubmitting(false); }
   };
 
   const deleteOffer = async (id) => {
-    if (!confirm("¿Seguro que quieres borrar esta oferta?")) return;
+    if (!confirm("¿Eliminar esta oferta?")) return;
     try {
       await fetch(`/api/offers?id=${id}`, { method: "DELETE" });
       fetchOffers();
-    } catch (err) {
-      alert("Error al borrar");
-    }
+      showToast("Oferta eliminada");
+    } catch { showToast("Error al eliminar", "error"); }
   };
 
-  return (
-    <div className="container animate-fade">
-      <div className="flex justify-between items-center mb-12">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Panel de Control</h1>
-          <p className="text-text-muted">Gestiona tus ofertas de Mercado Libre</p>
-        </div>
-        <button 
-          onClick={() => signOut()}
-          className="flex items-center gap-2 px-4 py-2 border border-white/10 rounded-xl hover:bg-accent/10 hover:text-accent transition-all"
-        >
-          <LogOut size={18} />
-          Cerrar Sesión
-        </button>
-      </div>
+  const totalValue = offers.reduce((acc, o) => acc + o.price, 0);
+  const avgDiscount = offers.length
+    ? Math.round(offers.filter(o => o.discount).reduce((a, o) => a + (o.discount || 0), 0) / offers.length)
+    : 0;
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Formulario */}
-        <div className="lg:col-span-1">
-          <form onSubmit={handleSubmit} className="glass p-6 rounded-2xl space-y-4 sticky top-24">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Plus className="text-primary" size={20} />
-              Nueva Oferta
-            </h2>
-            
-            <div className="space-y-4">
-              <input 
-                name="title"
-                placeholder="Título del producto"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full bg-background/50 border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
-                required
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                  <input 
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    placeholder="Precio"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    className="w-full bg-background/50 border border-white/10 rounded-xl p-3 pl-8 focus:border-primary outline-none"
-                    required
-                  />
+  return (
+    <div style={{ minHeight: "calc(100vh - 68px)", background: "var(--clr-bg)" }}>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", top: "5rem", right: "1.5rem", zIndex: 200,
+          background: toast.type === "error" ? "var(--clr-red)" : "var(--clr-orange)",
+          color: "#fff", padding: "0.85rem 1.25rem", borderRadius: "0.75rem",
+          display: "flex", alignItems: "center", gap: "0.6rem",
+          fontWeight: 700, fontSize: "0.9rem",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)", animation: "fadeUp 0.3s ease both",
+        }}>
+          <CheckCircle size={18} />
+          {toast.msg}
+        </div>
+      )}
+
+      <div className="container" style={{ padding: "2.5rem 1.75rem 5rem" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2.5rem" }}>
+          <div>
+            <h1 className="font-display" style={{ fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.03em" }}>
+              Panel de Control
+            </h1>
+            <p style={{ color: "var(--clr-muted)", marginTop: "0.25rem", fontSize: "0.9rem" }}>
+              Gestiona tus ofertas de Mercado Libre
+            </p>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.6rem 1.1rem", borderRadius: "0.75rem",
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+              color: "var(--clr-muted)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
+              transition: "all 0.3s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
+          >
+            <LogOut size={16} />
+            Cerrar sesión
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2.5rem" }}>
+          {[
+            { label: "Ofertas activas", value: offers.length, icon: <Package size={20} />, color: "var(--clr-orange)" },
+            { label: "Valor total", value: `$${totalValue.toLocaleString("es-MX")}`, icon: <DollarSign size={20} />, color: "var(--clr-purple)" },
+            { label: "Descuento promedio", value: `${avgDiscount}%`, icon: <TrendingUp size={20} />, color: "#10B981" },
+          ].map((s, i) => (
+            <div key={i} style={{
+              background: "var(--clr-card)", border: "1px solid var(--clr-border)",
+              borderRadius: "1rem", padding: "1.25rem 1.5rem",
+              display: "flex", alignItems: "center", gap: "1rem",
+            }}>
+              <div style={{
+                width: "42px", height: "42px", borderRadius: "0.75rem",
+                background: `${s.color}15`, color: s.color,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                {s.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, lineHeight: 1, fontFamily: "Sora, sans-serif" }}>
+                  {s.value}
                 </div>
-                <input 
-                  name="discount"
-                  type="number"
-                  placeholder="% Descuento"
-                  value={formData.discount}
-                  onChange={handleInputChange}
-                  className="w-full bg-background/50 border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
-                />
-              </div>
-              <input 
-                name="originalPrice"
-                type="number"
-                step="0.01"
-                placeholder="Precio Original (opcional)"
-                value={formData.originalPrice}
-                onChange={handleInputChange}
-                className="w-full bg-background/50 border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
-              />
-              <div className="relative">
-                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                <input 
-                  name="imageUrl"
-                  placeholder="URL de la imagen"
-                  value={formData.imageUrl}
-                  onChange={handleInputChange}
-                  className="w-full bg-background/50 border border-white/10 rounded-xl p-3 pl-8 focus:border-primary outline-none"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                <input 
-                  name="affiliateUrl"
-                  placeholder="Link de Afiliado"
-                  value={formData.affiliateUrl}
-                  onChange={handleInputChange}
-                  className="w-full bg-background/50 border border-white/10 rounded-xl p-3 pl-8 focus:border-primary outline-none"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                <select 
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full bg-background/50 border border-white/10 rounded-xl p-3 pl-8 focus:border-primary outline-none appearance-none"
-                >
-                  <option value="General">General</option>
-                  <option value="Tecnología">Tecnología</option>
-                  <option value="Hogar">Hogar</option>
-                  <option value="Moda">Moda</option>
-                  <option value="Otros">Otros</option>
-                </select>
+                <div style={{ fontSize: "0.75rem", color: "var(--clr-muted)", marginTop: "0.2rem", fontWeight: 500 }}>
+                  {s.label}
+                </div>
               </div>
             </div>
-
-            <button type="submit" className="btn-primary w-full justify-center mt-4">
-              Publicar Oferta
-            </button>
-          </form>
+          ))}
         </div>
 
-        {/* Lista */}
-        <div className="lg:col-span-2">
-          <div className="glass rounded-2xl overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-white/5">
-                <tr>
-                  <th className="p-4 text-sm font-semibold text-text-muted">Producto</th>
-                  <th className="p-4 text-sm font-semibold text-text-muted">Precio</th>
-                  <th className="p-4 text-sm font-semibold text-text-muted">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {loading ? (
-                  <tr><td colSpan="3" className="p-10 text-center text-text-muted">Cargando ofertas...</td></tr>
-                ) : offers.length === 0 ? (
-                  <tr><td colSpan="3" className="p-10 text-center text-text-muted">No has subido ofertas aún.</td></tr>
-                ) : (
-                  offers.map(offer => (
-                    <tr key={offer.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <img src={offer.imageUrl} className="w-12 h-12 object-contain bg-white rounded-lg p-1" />
-                          <div className="max-w-[200px]">
-                            <p className="font-semibold truncate">{offer.title}</p>
-                            <p className="text-xs text-text-muted">{offer.category}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 font-bold text-primary">
-                        ${offer.price.toLocaleString()}
-                      </td>
-                      <td className="p-4">
-                        <button 
-                          onClick={() => deleteOffer(offer.id)}
-                          className="text-text-muted hover:text-accent transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+        {/* Main grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "2rem", alignItems: "start" }}>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} style={{
+            background: "var(--clr-card)", border: "1px solid var(--clr-border)",
+            borderRadius: "1.25rem", padding: "1.75rem", position: "sticky", top: "88px",
+          }}>
+            <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <span style={{ width: "28px", height: "28px", background: "var(--clr-orange)", borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Plus size={16} color="#fff" />
+              </span>
+              Nueva oferta
+            </h2>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+              {/* Title */}
+              <div>
+                <label style={labelStyle}>Título del producto</label>
+                <input name="title" value={formData.title} onChange={handleChange}
+                  placeholder="Ej: iPhone 15 Pro Max 256GB" required style={inputStyle} />
+              </div>
+
+              {/* Price row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={labelStyle}>Precio ($)</label>
+                  <input name="price" type="number" step="0.01" min="0" value={formData.price}
+                    onChange={handleChange} placeholder="24999" required style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Precio original ($)</label>
+                  <input name="originalPrice" type="number" step="0.01" min="0" value={formData.originalPrice}
+                    onChange={handleChange} placeholder="28999" style={inputStyle} />
+                </div>
+              </div>
+
+              {/* Discount + Category */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={labelStyle}>Descuento (%)</label>
+                  <input name="discount" type="number" min="0" max="100" value={formData.discount}
+                    onChange={handleChange} placeholder="13" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Categoría</label>
+                  <select name="category" value={formData.category} onChange={handleChange} style={{ ...inputStyle, appearance: "none" }}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label style={labelStyle}>URL de la imagen</label>
+                <input name="imageUrl" type="url" value={formData.imageUrl} onChange={handleChange}
+                  placeholder="https://..." required style={inputStyle} />
+                {formData.imageUrl && (
+                  <div style={{ marginTop: "0.5rem", background: "#fff", borderRadius: "0.5rem", padding: "0.5rem", height: "80px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <img src={formData.imageUrl} alt="preview" style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Affiliate URL */}
+              <div>
+                <label style={labelStyle}>Link de afiliado</label>
+                <input name="affiliateUrl" type="url" value={formData.affiliateUrl} onChange={handleChange}
+                  placeholder="https://mercadolibre.com.mx/..." required style={inputStyle} />
+              </div>
+
+              <button type="submit" disabled={submitting} style={{
+                marginTop: "0.5rem",
+                background: submitting ? "var(--clr-dim)" : "var(--clr-orange)",
+                color: "#fff", border: "none", borderRadius: "0.75rem",
+                padding: "0.9rem", fontWeight: 700, fontSize: "0.95rem",
+                cursor: submitting ? "not-allowed" : "pointer",
+                transition: "all 0.3s",
+                boxShadow: submitting ? "none" : "0 4px 16px rgba(255,92,0,0.3)",
+              }}>
+                {submitting ? "Publicando..." : "✦ Publicar oferta"}
+              </button>
+            </div>
+          </form>
+
+          {/* Offers list */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1.25rem" }}>
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--clr-orange)", boxShadow: "0 0 8px var(--clr-orange)" }} />
+              <span style={{ color: "var(--clr-muted)", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                Ofertas publicadas
+              </span>
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "4rem", color: "var(--clr-muted)" }}>Cargando...</div>
+            ) : offers.length === 0 ? (
+              <div style={{
+                textAlign: "center", padding: "4rem 2rem",
+                background: "var(--clr-card)", border: "2px dashed var(--clr-border)",
+                borderRadius: "1.25rem", color: "var(--clr-muted)",
+              }}>
+                <Package size={40} style={{ margin: "0 auto 1rem", opacity: 0.2 }} />
+                <p style={{ fontWeight: 600 }}>Sin ofertas aún</p>
+                <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>Agrega tu primera oferta usando el formulario</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {offers.map(offer => (
+                  <div key={offer.id} style={{
+                    background: "var(--clr-card)", border: "1px solid var(--clr-border)",
+                    borderRadius: "1rem", padding: "1rem 1.25rem",
+                    display: "flex", alignItems: "center", gap: "1rem",
+                    transition: "border-color 0.3s",
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,92,0,0.25)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--clr-border)"}
+                  >
+                    {/* Thumbnail */}
+                    <div style={{
+                      width: "56px", height: "56px", flexShrink: 0,
+                      background: "#fff", borderRadius: "0.6rem", padding: "0.3rem",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <img src={offer.imageUrl} alt={offer.title}
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {offer.title}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.25rem" }}>
+                        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-orange)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                          {offer.category}
+                        </span>
+                        {offer.discount && (
+                          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-red)", background: "rgba(225,29,72,0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                            -{offer.discount}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontWeight: 800, fontFamily: "Sora, sans-serif", fontSize: "1.1rem" }}>
+                        ${offer.price.toLocaleString("es-MX")}
+                      </p>
+                      {offer.originalPrice && (
+                        <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", textDecoration: "line-through" }}>
+                          ${offer.originalPrice.toLocaleString("es-MX")}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => deleteOffer(offer.id)}
+                      style={{
+                        width: "36px", height: "36px", borderRadius: "0.6rem", flexShrink: 0,
+                        background: "transparent", border: "1px solid transparent",
+                        color: "var(--clr-muted)", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; e.currentTarget.style.background = "rgba(225,29,72,0.08)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const labelStyle = {
+  display: "block",
+  fontSize: "0.75rem",
+  fontWeight: 700,
+  color: "var(--clr-muted)",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  marginBottom: "0.4rem",
+};
+
+const inputStyle = {
+  width: "100%",
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid var(--clr-border)",
+  borderRadius: "0.65rem",
+  padding: "0.7rem 0.9rem",
+  color: "var(--clr-text)",
+  fontSize: "0.9rem",
+  outline: "none",
+  transition: "border-color 0.3s",
+  fontFamily: "inherit",
+};
