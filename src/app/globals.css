@@ -92,7 +92,7 @@ body {
 }
 
 .nav-brand { display: flex; align-items: center; gap: 0.85rem; text-decoration: none; flex-shrink: 0; }
-.nav-brand-logo { height: 40px; width: auto; }
+.nav-brand-logo { height: 50px; width: auto; }
 .nav-brand-name { font-family: 'Sora', sans-serif; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.03em; text-transform: uppercase; }
 .nav-brand-tagline { font-size: 0.58rem; color: var(--clr-muted); font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; margin-top: 2px; }
 
