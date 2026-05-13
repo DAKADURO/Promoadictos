@@ -1,6 +1,5 @@
-import OfferCard from "@/components/OfferCard";
+import HomeClient from "@/components/HomeClient";
 import { prisma } from "@/lib/db";
-import { Sparkles } from "lucide-react";
 
 async function getOffers() {
   try {
@@ -20,6 +19,7 @@ const MOCK_OFFERS = [
     imageUrl: "https://http2.mlstatic.com/D_NQ_NP_615873-MLU72007534374_092023-O.webp",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Tecnología",
+    isFeatured: true,
   },
   {
     id: "2",
@@ -33,13 +33,14 @@ const MOCK_OFFERS = [
   },
   {
     id: "3",
-    title: "Monitor Gamer Samsung Odyssey G5 27\" Curvo 144 Hz",
+    title: 'Monitor Gamer Samsung Odyssey G5 27" Curvo 144 Hz',
     price: 4500,
     originalPrice: 6500,
     discount: 30,
     imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Gaming",
+    isFeatured: true,
   },
   {
     id: "4",
@@ -77,52 +78,5 @@ export default async function Home() {
   const dbOffers = await getOffers();
   const offers = dbOffers.length > 0 ? dbOffers : MOCK_OFFERS;
 
-  return (
-    <>
-      {/* ── HERO ────────────────────────────────── */}
-      <section className="hero animate-up">
-        <div className="badge">
-          <span className="dot" />
-          Actualizado al momento
-        </div>
-
-        <h1 className="hero-title font-display">
-          Las mejores ofertas<br />
-          de <span className="gradient-text">Mercado Libre</span>
-        </h1>
-
-        <p className="hero-sub">
-          Seleccionamos manualmente descuentos reales cada día. Sin spam, sin relleno. Solo las gangas que realmente valen la pena.
-        </p>
-      </section>
-
-      {/* ── OFFERS ──────────────────────────────── */}
-      <section style={{ padding: "0 0 7rem" }}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-dot" />
-            <span className="section-title">Ofertas Activas</span>
-            <span style={{ marginLeft:"auto", fontSize:"0.8rem", color:"var(--clr-muted)" }}>
-              {offers.length} productos
-            </span>
-          </div>
-
-          {offers.length > 0 ? (
-            <div className="offers-grid">
-              {offers.map((offer, i) => (
-                <div key={offer.id} style={{ animationDelay: `${i * 60}ms` }}>
-                  <OfferCard offer={offer} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <Sparkles size={40} style={{ margin:"0 auto 1rem", opacity:0.2 }} />
-              <p style={{ fontSize:"1rem", fontWeight:600 }}>Rastreando gangas…</p>
-            </div>
-          )}
-        </div>
-      </section>
-    </>
-  );
+  return <HomeClient offers={offers} />;
 }

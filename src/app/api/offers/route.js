@@ -5,7 +5,10 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const offers = await prisma.offer.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { isFeatured: "desc" },
+        { createdAt: "desc" },
+      ],
     });
     return NextResponse.json(offers);
   } catch (error) {
@@ -29,6 +32,7 @@ export async function POST(req) {
         imageUrl: data.imageUrl,
         affiliateUrl: data.affiliateUrl,
         category: data.category,
+        isFeatured: data.isFeatured || false,
       },
     });
     return NextResponse.json(offer);
