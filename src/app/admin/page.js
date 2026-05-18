@@ -76,6 +76,22 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Auto-calculate discount when price or originalPrice changes
+  useEffect(() => {
+    const p = parseFloat(formData.price);
+    const op = parseFloat(formData.originalPrice);
+    if (p && op && op > p) {
+      const calcDiscount = Math.round(((op - p) / op) * 100);
+      setFormData(prev => {
+        const discountStr = calcDiscount.toString();
+        if (prev.discount !== discountStr) {
+          return { ...prev, discount: discountStr };
+        }
+        return prev;
+      });
+    }
+  }, [formData.price, formData.originalPrice]);
+
   const fetchOffers = async () => {
     setLoading(true);
     try {

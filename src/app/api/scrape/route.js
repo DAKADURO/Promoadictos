@@ -96,6 +96,25 @@ function findComponents(obj, result = { title: null, price: null, originalPrice:
   return result;
 }
 
+// Recursively find the highlighted recommended product ID on a creator/social page
+function findFeaturedProductId(obj) {
+  if (!obj || typeof obj !== "object") return null;
+
+  if (Array.isArray(obj.polycards) && obj.polycards.length > 0) {
+    const firstCard = obj.polycards[0];
+    if (firstCard.metadata && firstCard.metadata.id) {
+      return firstCard.metadata.id;
+    }
+  }
+
+  for (const key of Object.keys(obj)) {
+    const id = findFeaturedProductId(obj[key]);
+    if (id) return id;
+  }
+
+  return null;
+}
+
 export async function GET(req) {
   // 1. Secure authorization check
   const session = await auth();
@@ -134,9 +153,40 @@ export async function GET(req) {
 
       // Extract details from Nordic State JSON
       const state = extractNordicState(html);
-      let details = { title: "", price: null, originalPrice: null, discount: null };
+      let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl };
+
       if (state) {
-        details = findComponents(state);
+        // Try to find the exact highlighted product ID to get perfect data from the official API
+        const featuredId = findFeaturedProductId(state);
+        if (featuredId) {
+          console.log("Found featured product ID on social page:", featuredId);
+          try {
+            const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
+            if (apiRes.ok) {
+              const item = await apiRes.json();
+              details.title = item.title;
+              details.price = item.price;
+              details.originalPrice = item.original_price || null;
+              if (details.originalPrice && details.originalPrice > details.price) {
+                details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
+              }
+              if (item.pictures && item.pictures.length > 0) {
+                details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
+              }
+            }
+          } catch (apiErr) {
+            console.error("API error while fetching featured item from social page:", apiErr);
+          }
+        }
+
+        // Fallback to state component scanning if API fetch didn't succeed or didn't populate data
+        if (!details.title) {
+          const componentsData = findComponents(state);
+          details.title = componentsData.title;
+          details.price = componentsData.price;
+          details.originalPrice = componentsData.originalPrice;
+          details.discount = componentsData.discount;
+        }
       }
 
       // If no title was found via state, fall back to meta tag
@@ -145,13 +195,18 @@ export async function GET(req) {
         details.title = titleMatch ? titleMatch[1] : "";
       }
 
+      // Final dynamic calculation of discount as a fallback
+      if (details.price && details.originalPrice && details.originalPrice > details.price && !details.discount) {
+        details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
+      }
+
       return NextResponse.json({
         success: true,
         title: details.title,
         price: details.price,
         originalPrice: details.originalPrice,
         discount: details.discount,
-        imageUrl: imageUrl,
+        imageUrl: details.imageUrl || imageUrl,
         affiliateUrl: targetUrl, // Keep original meli.la affiliate link
       });
     }
