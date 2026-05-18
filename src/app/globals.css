@@ -571,3 +571,316 @@ body {
     padding: 0.75rem 0;
   }
 }
+
+/* ─────────────────────────────────────────
+   MERCADO PAGO POINT TERMINALS SECTION
+   ───────────────────────────────────────── */
+.point-section {
+  padding: 4rem 0;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--clr-border);
+  border-bottom: 1px solid var(--clr-border);
+  background-image: 
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255, 172, 62, 0.03) 0%, transparent 70%);
+}
+
+.point-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+  z-index: 2;
+}
+
+.point-header-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 158, 227, 0.08);
+  border: 1px solid rgba(0, 158, 227, 0.25);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #009EE3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.point-header-tag .dot {
+  width: 6px;
+  height: 6px;
+  background: #009EE3;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #009EE3;
+  animation: pulseBlue 2s infinite;
+}
+
+@keyframes pulseBlue {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.point-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(1.85rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.point-title span {
+  background: linear-gradient(110deg, #FFB800 0%, #FF5C00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.point-subtitle {
+  font-size: 0.95rem;
+  color: var(--clr-muted);
+  max-width: 620px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.point-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  position: relative;
+  z-index: 2;
+}
+
+.point-card {
+  background: var(--clr-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.5s var(--ease), border-color 0.4s, box-shadow 0.5s var(--ease);
+  text-decoration: none;
+  color: inherit;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.point-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  border-color: rgba(255, 172, 62, 0.35);
+  box-shadow: 0 20px 40px -10px rgba(255, 172, 62, 0.12), 0 0 30px rgba(255, 92, 0, 0.04);
+}
+
+/* Glowing top edge for point cards */
+.point-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #FFB800, transparent);
+  opacity: 0;
+  transition: opacity 0.45s var(--ease);
+  z-index: 2;
+}
+
+.point-card:hover::before {
+  opacity: 1;
+}
+
+.point-img-container {
+  background: #fff;
+  padding: 1.5rem;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.point-img-container img {
+  max-height: 100%;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.6s var(--ease);
+}
+
+.point-card:hover .point-img-container img {
+  transform: scale(1.06);
+}
+
+.point-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #FF3E3E, #E11D48);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.05em;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+}
+
+.point-card-cashback {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  color: #A78BFA;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(8px);
+  z-index: 3;
+}
+
+.point-card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.75rem;
+}
+
+.point-card-title-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.point-card-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  transition: color 0.3s;
+}
+
+.point-card:hover .point-card-title {
+  color: #FFB800;
+}
+
+.point-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+  line-height: 1.4;
+  min-height: 2.2rem;
+}
+
+.point-card-pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0.25rem 0;
+}
+
+.point-card-price {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--clr-text);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.point-card-original {
+  font-size: 0.9rem;
+  color: var(--clr-dim);
+  text-decoration: line-through;
+}
+
+.point-card-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  padding-top: 0.75rem;
+}
+
+.point-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--clr-muted);
+}
+
+.point-feature-icon {
+  color: #009EE3;
+  flex-shrink: 0;
+}
+
+.point-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #009EE3, #007EE5);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.35s var(--ease);
+  margin-top: auto;
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 158, 227, 0.15);
+}
+
+.point-card-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.15));
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+
+.point-card:hover .point-card-btn::before {
+  opacity: 1;
+}
+
+.point-card:hover .point-card-btn {
+  box-shadow: 0 8px 24px rgba(0, 158, 227, 0.4);
+  transform: scale(1.02);
+}
+
+/* Responsive point styling override */
+@media (max-width: 768px) {
+  .point-section {
+    padding: 2.5rem 0;
+  }
+  .point-header {
+    margin-bottom: 2rem;
+  }
+  .point-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .point-card-pricing {
+    margin: 0.15rem 0;
+  }
+  .point-card-price {
+    font-size: 1.65rem;
+  }
+}
+
