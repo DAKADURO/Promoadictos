@@ -250,7 +250,7 @@ export default function AdminPage() {
             {/* Form */}
             <form onSubmit={handleSubmit} style={{
               background: "var(--clr-card)", border: "1px solid var(--clr-border)",
-              borderRadius: "1.25rem", padding: "1.75rem", position: "sticky", top: "92px",
+              borderRadius: "1.25rem", padding: "1.25rem",
             }}>
               <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <span style={{ width: "28px", height: "28px", background: "var(--clr-orange)", borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -259,7 +259,7 @@ export default function AdminPage() {
                 Nueva oferta
               </h2>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
                 {/* Autocompletar inteligente */}
                 <div style={{
                   background: "rgba(255,92,0,0.03)",
@@ -524,6 +524,6 @@ const labelStyle = {
 const inputStyle = {
   width: "100%", background: "rgba(255,255,255,0.03)",
   border: "1px solid var(--clr-border)", borderRadius: "0.65rem",
-  padding: "0.7rem 0.9rem", color: "var(--clr-text)", fontSize: "0.9rem",
+  padding: "0.55rem 0.8rem", color: "var(--clr-text)", fontSize: "0.88rem",
   outline: "none", transition: "border-color 0.3s", fontFamily: "inherit",
 };
