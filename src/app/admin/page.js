@@ -24,21 +24,15 @@ export default function AdminPage() {
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
 
-  useEffect(() => { fetchOffers(); }, []);
-
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleImport = async () => {
-    if (!importUrl) {
-      showToast("Por favor ingresa un link primero", "error");
-      return;
-    }
+  const triggerAutoImport = async (url) => {
     setImporting(true);
     try {
-      const res = await fetch(`/api/scrape?url=${encodeURIComponent(importUrl)}`);
+      const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
       const data = await res.json();
       if (res.ok && data.success) {
         setFormData(prev => ({
@@ -48,7 +42,7 @@ export default function AdminPage() {
           originalPrice: data.originalPrice !== null && data.originalPrice !== undefined ? data.originalPrice.toString() : prev.originalPrice,
           discount: data.discount !== null && data.discount !== undefined ? data.discount.toString() : prev.discount,
           imageUrl: data.imageUrl || prev.imageUrl,
-          affiliateUrl: data.affiliateUrl || prev.affiliateUrl || importUrl,
+          affiliateUrl: data.affiliateUrl || prev.affiliateUrl || url,
         }));
         showToast("¡Datos importados con éxito!");
       } else {
@@ -60,6 +54,27 @@ export default function AdminPage() {
       setImporting(false);
     }
   };
+
+  const handleImport = async () => {
+    if (!importUrl) {
+      showToast("Por favor ingresa un link primero", "error");
+      return;
+    }
+    await triggerAutoImport(importUrl);
+  };
+
+  useEffect(() => {
+    fetchOffers();
+    // Auto import if URL query param exists
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const autoUrl = params.get("importUrl");
+      if (autoUrl) {
+        setImportUrl(autoUrl);
+        triggerAutoImport(autoUrl);
+      }
+    }
+  }, []);
 
   const fetchOffers = async () => {
     setLoading(true);
