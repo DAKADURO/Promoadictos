@@ -9,7 +9,10 @@ export default function OfferCard({ offer, index = 0 }) {
   const isHotDeal = discount && discount >= 30;
 
   return (
-    <motion.article
+    <motion.a
+      href={affiliateUrl}
+      target="_blank"
+      rel="noopener noreferrer"
       className={`offer-card${isFeatured ? " featured" : ""}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -59,17 +62,14 @@ export default function OfferCard({ offer, index = 0 }) {
           </span>
         )}
 
-        <a
-          href={affiliateUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <div
           className="card-cta"
           id={`offer-cta-${offer.id}`}
         >
           Ver oferta
           <ExternalLink size={15} strokeWidth={2.5} />
-        </a>
+        </div>
       </div>
-    </motion.article>
+    </motion.a>
   );
 }
