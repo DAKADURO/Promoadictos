@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try {
@@ -35,6 +36,7 @@ export async function POST(req) {
         isFeatured: data.isFeatured || false,
       },
     });
+    revalidatePath("/");
     return NextResponse.json(offer);
   } catch (error) {
     return NextResponse.json({ error: "Error creating offer" }, { status: 500 });
@@ -50,6 +52,7 @@ export async function DELETE(req) {
 
   try {
     await prisma.offer.delete({ where: { id } });
+    revalidatePath("/");
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Error deleting offer" }, { status: 500 });
@@ -72,6 +75,7 @@ export async function PUT(req) {
       where: { id },
       data: updateData,
     });
+    revalidatePath("/");
     return NextResponse.json(updatedOffer);
   } catch (error) {
     console.error("Prisma PUT Error:", error);

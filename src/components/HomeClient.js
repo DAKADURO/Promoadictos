@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import OfferCard from "@/components/OfferCard";
 import CategoryFilter from "@/components/CategoryFilter";
 import StoreMarquee from "@/components/StoreMarquee";
@@ -10,9 +10,34 @@ import { Sparkles, Zap, ShieldCheck, Clock } from "lucide-react";
 export default function HomeClient({ offers }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
+  const [currentOffers, setCurrentOffers] = useState(offers);
+
+  useEffect(() => {
+    setCurrentOffers(offers);
+  }, [offers]);
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const res = await fetch("/api/offers");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setCurrentOffers(data);
+          }
+        }
+      } catch (err) {
+        console.error("Error polling latest offers:", err);
+      }
+    };
+
+    // Poll every 8 seconds to synchronize new offers in real-time
+    const interval = setInterval(fetchLatest, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   const filtered = useMemo(() => {
-    let result = offers;
+    let result = currentOffers;
     if (category) {
       result = result.filter((o) => o.category === category);
     }
@@ -25,9 +50,9 @@ export default function HomeClient({ offers }) {
       );
     }
     return result;
-  }, [offers, search, category]);
+  }, [currentOffers, search, category]);
 
-  const totalSavings = offers.reduce((acc, o) => {
+  const totalSavings = currentOffers.reduce((acc, o) => {
     if (o.originalPrice && o.price) return acc + (o.originalPrice - o.price);
     return acc;
   }, 0);
@@ -58,7 +83,7 @@ export default function HomeClient({ offers }) {
         <div className="stats-bar" style={{ marginTop: "1rem" }}>
           <div className="stat-item">
             <Zap size={15} color="var(--clr-orange)" />
-            <span className="stat-value">{offers.length}</span> ofertas activas
+            <span className="stat-value">{currentOffers.length}</span> ofertas activas
           </div>
           <div className="stat-item">
             <ShieldCheck size={15} color="var(--clr-green)" />
