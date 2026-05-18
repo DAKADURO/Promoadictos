@@ -55,3 +55,26 @@ export async function DELETE(req) {
     return NextResponse.json({ error: "Error deleting offer" }, { status: 500 });
   }
 }
+
+export async function PUT(req) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const data = await req.json();
+    const { id, ...updateData } = data;
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing offer ID" }, { status: 400 });
+    }
+
+    const updatedOffer = await prisma.offer.update({
+      where: { id },
+      data: updateData,
+    });
+    return NextResponse.json(updatedOffer);
+  } catch (error) {
+    console.error("Prisma PUT Error:", error);
+    return NextResponse.json({ error: "Error updating offer" }, { status: 500 });
+  }
+}

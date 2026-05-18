@@ -141,6 +141,24 @@ export default function AdminPage() {
     } catch { showToast("Error al eliminar", "error"); }
   };
 
+  const updateOffer = async (id, updatedFields) => {
+    try {
+      const res = await fetch("/api/offers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updatedFields }),
+      });
+      if (res.ok) {
+        setOffers(prev => prev.map(o => o.id === id ? { ...o, ...updatedFields } : o));
+        showToast("¡Oferta actualizada!");
+      } else {
+        showToast("Error al actualizar la oferta", "error");
+      }
+    } catch {
+      showToast("Error de conexión al actualizar", "error");
+    }
+  };
+
   const totalValue = offers.reduce((acc, o) => acc + o.price, 0);
   const avgDiscount = offers.length
     ? Math.round(offers.filter(o => o.discount).reduce((a, o) => a + (o.discount || 0), 0) / offers.length)
@@ -416,9 +434,40 @@ export default function AdminPage() {
                           {offer.title}
                         </p>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.25rem" }}>
-                          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-orange)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                            {offer.category}
-                          </span>
+                          <select
+                            value={offer.category}
+                            onChange={(e) => updateOffer(offer.id, { category: e.target.value })}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              color: "var(--clr-orange)",
+                              background: "rgba(255,92,0,0.06)",
+                              border: "1px solid rgba(255,92,0,0.15)",
+                              borderRadius: "4px",
+                              padding: "0.1rem 0.35rem",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.1em",
+                              cursor: "pointer",
+                              outline: "none",
+                              fontFamily: "inherit",
+                              transition: "all 0.2s",
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.borderColor = "var(--clr-orange)";
+                              e.currentTarget.style.background = "rgba(255,92,0,0.12)";
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.borderColor = "rgba(255,92,0,0.15)";
+                              e.currentTarget.style.background = "rgba(255,92,0,0.06)";
+                            }}
+                          >
+                            {CATEGORIES.map(c => (
+                              <option key={c} value={c} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
                           {offer.discount && (
                             <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-red)", background: "rgba(225,29,72,0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
                               -{offer.discount}%
