@@ -125,7 +125,7 @@ body {
 /* ─────────────────────────────────────────
    HERO
 ───────────────────────────────────────── */
-.hero { padding: 6rem 0 4rem; text-align: center; position: relative; }
+.hero { padding: 3.5rem 0 2rem; text-align: center; position: relative; }
 
 .hero::after {
   content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -149,10 +149,10 @@ body {
 
 .badge {
   display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.45rem 1.1rem; border-radius: var(--radius-pill);
+  padding: 0.4rem 0.95rem; border-radius: var(--radius-pill);
   background: var(--clr-orange-bg); border: 1px solid rgba(255,92,0,0.2);
-  font-size: 0.75rem; font-weight: 700; color: var(--clr-orange-lt);
-  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem;
+  font-size: 0.7rem; font-weight: 700; color: var(--clr-orange-lt);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.25rem;
 }
 .badge .dot {
   width: 6px; height: 6px; background: var(--clr-orange);
@@ -167,19 +167,19 @@ body {
 
 .hero-title {
   font-family: 'Sora', sans-serif;
-  font-size: clamp(2.6rem, 6.5vw, 5rem);
-  font-weight: 800; line-height: 1.05; letter-spacing: -0.04em;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-weight: 800; line-height: 1.1; letter-spacing: -0.04em;
 }
 
 .hero-sub {
-  margin: 1.5rem auto 0; max-width: 520px;
-  font-size: 1rem; line-height: 1.7; color: var(--clr-muted); font-weight: 400;
+  margin: 1rem auto 0; max-width: 540px;
+  font-size: 0.92rem; line-height: 1.6; color: var(--clr-muted); font-weight: 400;
 }
 
 /* ─────────────────────────────────────────
    STORE MARQUEE
 ───────────────────────────────────────── */
-.marquee-section { padding: 2.5rem 0; overflow: hidden; position: relative; }
+.marquee-section { padding: 1.25rem 0; overflow: hidden; position: relative; }
 .marquee-section::before, .marquee-section::after {
   content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2; pointer-events: none;
 }
@@ -213,7 +213,7 @@ body {
 ───────────────────────────────────────── */
 .filter-bar {
   display: flex; align-items: center; gap: 0.6rem;
-  padding: 1.5rem 0 2.5rem; overflow-x: auto;
+  padding: 1rem 0 1.5rem; overflow-x: auto;
   scrollbar-width: none;
 }
 .filter-bar::-webkit-scrollbar { display: none; }
@@ -376,8 +376,8 @@ body {
    STATS BAR
 ───────────────────────────────────────── */
 .stats-bar {
-  display: flex; gap: 1.5rem; justify-content: center;
-  padding: 0 0 1rem; flex-wrap: wrap;
+  display: flex; gap: 1.2rem; justify-content: center;
+  padding: 0; flex-wrap: wrap;
 }
 .stat-item {
   display: flex; align-items: center; gap: 0.5rem;

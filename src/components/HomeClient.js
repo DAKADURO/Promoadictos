@@ -55,7 +55,7 @@ export default function HomeClient({ offers }) {
         </p>
 
         {/* Stats */}
-        <div className="stats-bar" style={{ marginTop: "2rem" }}>
+        <div className="stats-bar" style={{ marginTop: "1rem" }}>
           <div className="stat-item">
             <Zap size={15} color="var(--clr-orange)" />
             <span className="stat-value">{offers.length}</span> ofertas activas
