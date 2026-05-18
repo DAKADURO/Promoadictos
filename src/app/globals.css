@@ -189,6 +189,8 @@ body {
 .marquee-track {
   display: flex; gap: 3rem; width: max-content;
   animation: marquee 30s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 .marquee-track:hover { animation-play-state: paused; }
 
@@ -528,6 +530,30 @@ body {
   .stat-item {
     font-size: 0.68rem;
     padding: 0.35rem 0.65rem;
+  }
+
+  /* Disable marquee animation and enable horizontal swipe on mobile */
+  .marquee-section {
+    padding: 0.5rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .marquee-section::-webkit-scrollbar {
+    display: none;
+  }
+  .marquee-section::before, .marquee-section::after {
+    display: none;
+  }
+  .marquee-track {
+    animation: none !important;
+    gap: 0.6rem;
+    padding: 0 1.25rem;
+    width: max-content;
+  }
+  .marquee-item {
+    padding: 0.45rem 0.95rem;
+    font-size: 0.75rem;
   }
 }
 
