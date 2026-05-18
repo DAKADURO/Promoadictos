@@ -115,6 +115,40 @@ function findFeaturedProductId(obj) {
   return null;
 }
 
+// Recursively find the exact highlighted recommended product details from the state polycard
+function findFeaturedProductDetails(obj) {
+  if (!obj || typeof obj !== "object") return null;
+
+  if (Array.isArray(obj.polycards) && obj.polycards.length > 0) {
+    const firstCard = obj.polycards[0];
+    const details = { title: "", price: null, originalPrice: null, discount: null };
+
+    if (Array.isArray(firstCard.components)) {
+      for (const comp of firstCard.components) {
+        if (comp.type === "title" && comp.title?.text) {
+          details.title = comp.title.text;
+        }
+        if (comp.type === "price" && comp.price) {
+          details.price = comp.price.current_price?.value || null;
+          details.originalPrice = comp.price.previous_price?.value || null;
+          details.discount = comp.price.discount?.value || null;
+        }
+      }
+    }
+
+    if (details.title || details.price) {
+      return details;
+    }
+  }
+
+  for (const key of Object.keys(obj)) {
+    const details = findFeaturedProductDetails(obj[key]);
+    if (details) return details;
+  }
+
+  return null;
+}
+
 export async function GET(req) {
   // 1. Secure authorization check
   const session = await auth();
@@ -156,30 +190,40 @@ export async function GET(req) {
       let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl };
 
       if (state) {
-        // Try to find the exact highlighted product ID to get perfect data from the official API
-        const featuredId = findFeaturedProductId(state);
-        if (featuredId) {
-          console.log("Found featured product ID on social page:", featuredId);
-          try {
-            const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
-            if (apiRes.ok) {
-              const item = await apiRes.json();
-              details.title = item.title;
-              details.price = item.price;
-              details.originalPrice = item.original_price || null;
-              if (details.originalPrice && details.originalPrice > details.price) {
-                details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
+        // 1. Try to extract details directly from the first polycard in the state (fastest, 100% accurate, no API limits!)
+        const localDetails = findFeaturedProductDetails(state);
+        if (localDetails && localDetails.title) {
+          console.log("Extracted featured product details locally from polycard:", localDetails.title);
+          details.title = localDetails.title;
+          details.price = localDetails.price;
+          details.originalPrice = localDetails.originalPrice;
+          details.discount = localDetails.discount;
+        } else {
+          // 2. Fallback: try to find the exact highlighted product ID to get perfect data from the official API
+          const featuredId = findFeaturedProductId(state);
+          if (featuredId) {
+            console.log("Found featured product ID on social page, fetching from API:", featuredId);
+            try {
+              const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
+              if (apiRes.ok) {
+                const item = await apiRes.json();
+                details.title = item.title;
+                details.price = item.price;
+                details.originalPrice = item.original_price || null;
+                if (details.originalPrice && details.originalPrice > details.price) {
+                  details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
+                }
+                if (item.pictures && item.pictures.length > 0) {
+                  details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
+                }
               }
-              if (item.pictures && item.pictures.length > 0) {
-                details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
-              }
+            } catch (apiErr) {
+              console.error("API error while fetching featured item from social page:", apiErr);
             }
-          } catch (apiErr) {
-            console.error("API error while fetching featured item from social page:", apiErr);
           }
         }
 
-        // Fallback to state component scanning if API fetch didn't succeed or didn't populate data
+        // 3. Fallback: deep scan all components in the state
         if (!details.title) {
           const componentsData = findComponents(state);
           details.title = componentsData.title;
