@@ -572,6 +572,43 @@ body {
   }
 }
 
+/* Navbar Terminal Button */
+.nav-terminal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 158, 227, 0.08);
+  border: 1px solid rgba(0, 158, 227, 0.2);
+  color: #009EE3 !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition: all 0.3s var(--ease);
+  cursor: pointer;
+}
+
+.nav-terminal-btn:hover {
+  background: rgba(0, 158, 227, 0.15);
+  border-color: rgba(0, 158, 227, 0.45);
+  box-shadow: 0 0 16px rgba(0, 158, 227, 0.15);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .nav-terminal-btn {
+    padding: 0.45rem;
+    border-radius: 50%;
+    width: 2.3rem;
+    height: 2.3rem;
+    justify-content: center;
+  }
+  .nav-terminal-btn span {
+    display: none;
+  }
+}
+
 /* ─────────────────────────────────────────
    MERCADO PAGO POINT TERMINALS SECTION
    ───────────────────────────────────────── */

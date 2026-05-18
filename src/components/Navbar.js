@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Lock, Search } from "lucide-react";
+import { Lock, Search, CreditCard } from "lucide-react";
 import { useState } from "react";
 
 export default function Navbar({ onSearch }) {
@@ -26,19 +26,25 @@ export default function Navbar({ onSearch }) {
         </Link>
 
         {/* Search */}
-        <div className="nav-search">
-          <input
-            type="text"
-            placeholder="Buscar ofertas…"
-            value={query}
-            onChange={handleInput}
-            id="nav-search-input"
-          />
-          <Search size={16} className="nav-search-icon" />
-        </div>
+        {onSearch && (
+          <div className="nav-search">
+            <input
+              type="text"
+              placeholder="Buscar ofertas…"
+              value={query}
+              onChange={handleInput}
+              id="nav-search-input"
+            />
+            <Search size={16} className="nav-search-icon" />
+          </div>
+        )}
 
         {/* Actions */}
         <div className="nav-actions">
+          <Link href="/terminales" className="nav-terminal-btn" id="nav-terminales-btn">
+            <CreditCard size={16} />
+            <span>Terminales Point</span>
+          </Link>
           <Link href="/admin" className="btn-ghost" title="Admin" id="nav-admin-btn">
             <Lock size={18} />
           </Link>
