@@ -13,6 +13,15 @@ export const metadata = {
   },
 };
 
+// Optimal viewport for mobile — viewport-fit=cover fills iPhone notch/dynamic island
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#050810",
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;

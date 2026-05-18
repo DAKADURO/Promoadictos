@@ -48,6 +48,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  /* Eliminate 300ms tap delay everywhere */
+  touch-action: manipulation;
   background-image:
     radial-gradient(ellipse 80% 50% at 20% -5%,  rgba(255,92,0,0.06) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 85% 10%,  rgba(124,58,237,0.05) 0%, transparent 55%),
@@ -58,6 +60,17 @@ body {
    LAYOUT
 ───────────────────────────────────────── */
 .container { max-width: 1320px; margin: 0 auto; padding: 0 1.75rem; }
+
+/* Safe area insets for iPhone notch / dynamic island / home bar */
+@supports (padding: max(0px)) {
+  .glass-nav .nav-inner {
+    padding-left: max(1.75rem, env(safe-area-inset-left));
+    padding-right: max(1.75rem, env(safe-area-inset-right));
+  }
+  .site-footer {
+    padding-bottom: max(3rem, calc(env(safe-area-inset-bottom) + 1.5rem));
+  }
+}
 
 /* ─────────────────────────────────────────
    TYPOGRAPHY
@@ -226,6 +239,10 @@ body {
   color: var(--clr-muted); font-size: 0.82rem; font-weight: 600;
   cursor: pointer; transition: all 0.3s var(--ease);
   font-family: inherit; letter-spacing: 0.01em;
+  /* Eliminate tap delay and provide instant feedback */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 .filter-pill:hover {
   color: var(--clr-text); border-color: rgba(255,255,255,0.15);
@@ -366,6 +383,9 @@ body {
   cursor: pointer; text-decoration: none;
   transition: all 0.35s var(--ease); margin-top: auto;
   letter-spacing: 0.02em; position: relative; overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 .card-cta::before {
   content: ''; position: absolute; inset: 0;
@@ -462,27 +482,25 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--clr-orange); }
 
 /* ─────────────────────────────────────────
-   RESPONSIVE
+   RESPONSIVE – TABLET (max 768px)
 ───────────────────────────────────────── */
 @media (max-width: 768px) {
+
+  /* ── Navbar ── */
+  .glass-nav {
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  }
   .nav-inner {
     flex-wrap: wrap;
     height: auto;
-    padding: 0.65rem 0;
-    gap: 0.65rem;
+    padding: 0.55rem 0;
+    gap: 0.5rem;
   }
-  .nav-brand {
-    flex: 1;
-  }
-  .nav-brand-logo {
-    height: 40px;
-  }
-  .nav-brand-name {
-    font-size: 1.15rem;
-  }
-  .nav-brand-tagline {
-    display: none;
-  }
+  .nav-brand { flex: 1; }
+  .nav-brand-logo { height: 36px; }
+  .nav-brand-name { font-size: 1.1rem; }
+  .nav-brand-tagline { display: none; }
   .nav-search {
     display: block;
     width: 100%;
@@ -490,86 +508,184 @@ body {
     order: 3;
   }
   .nav-search input {
-    padding: 0.5rem 1rem 0.5rem 2.2rem;
-    font-size: 0.85rem;
+    padding: 0.55rem 1rem 0.55rem 2.2rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-pill);
   }
-  .nav-search-icon {
-    width: 14px;
-    height: 14px;
-    left: 0.75rem;
-  }
-  .nav-actions {
-    order: 2;
-  }
-  .btn-ghost {
-    width: 2.3rem;
-    height: 2.3rem;
-  }
+  .nav-search-icon { width: 14px; height: 14px; left: 0.75rem; }
+  .nav-actions { order: 2; }
+  .btn-ghost { width: 2.2rem; height: 2.2rem; }
 
+  /* ── Hero ── */
   .hero {
-    padding: 1.75rem 0 1.25rem;
+    padding: 1.5rem 0 1rem;
   }
   .hero::before {
-    width: 320px;
-    height: 320px;
-    top: -40px;
+    width: 280px;
+    height: 280px;
+    top: -30px;
   }
   .hero-sub {
-    font-size: 0.85rem;
-    margin-top: 0.6rem;
+    font-size: 0.88rem;
+    margin-top: 0.5rem;
+    padding: 0 0.5rem;
   }
 
-  .offers-grid {
-    grid-template-columns: 1fr;
-    gap: 1.15rem;
-  }
+  /* ── Stats bar ── */
   .stats-bar {
-    gap: 0.5rem;
+    gap: 0.4rem;
     margin-top: 0.75rem !important;
   }
   .stat-item {
-    font-size: 0.68rem;
-    padding: 0.35rem 0.65rem;
+    font-size: 0.7rem;
+    padding: 0.4rem 0.7rem;
+    gap: 0.35rem;
   }
 
-  /* Disable marquee animation and enable horizontal swipe on mobile */
+  /* ── Marquee → horizontal swipe ── */
   .marquee-section {
-    padding: 0.5rem 0;
+    padding: 0.4rem 0;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
-  .marquee-section::-webkit-scrollbar {
-    display: none;
-  }
-  .marquee-section::before, .marquee-section::after {
-    display: none;
-  }
+  .marquee-section::-webkit-scrollbar { display: none; }
+  .marquee-section::before, .marquee-section::after { display: none; }
   .marquee-track {
     animation: none !important;
-    gap: 0.6rem;
-    padding: 0 1.25rem;
+    gap: 0.5rem;
+    padding: 0.25rem 1rem;
     width: max-content;
   }
   .marquee-item {
-    padding: 0.45rem 0.95rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.72rem;
   }
+
+  /* ── Section header ── */
+  .section-header { margin-bottom: 0.6rem; }
+  .section-title { font-size: 0.95rem; }
+
+  /* ── Category filter ── */
+  .filter-bar {
+    padding: 0.65rem 0 1rem;
+    gap: 0.45rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-pill {
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+    /* bigger tap target on mobile */
+    min-height: 36px;
+  }
+
+  /* ── OFFER GRID – horizontal swipeable row ── */
+  .offers-grid {
+    /* Single column on tablets/phone */
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  /* ── Offer Card – horizontal layout on mobile ── */
+  .offer-card {
+    flex-direction: row;
+    border-radius: var(--radius-sm);
+    min-height: 130px;
+    /* Disable expensive hover animation on touch devices */
+  }
+  .offer-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  /* Keep a subtle active/press feedback instead */
+  .offer-card:active {
+    transform: scale(0.985);
+    transition: transform 0.12s;
+  }
+
+  .card-img-wrap {
+    /* Fixed-width square thumbnail */
+    width: 130px;
+    min-width: 130px;
+    aspect-ratio: 1;
+    padding: 0.75rem;
+    border-right: 1px solid var(--clr-border);
+    flex-shrink: 0;
+  }
+  .offer-card:hover .card-img-wrap img { transform: none; }
+
+  .discount-badge {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.55rem;
+  }
+
+  /* Hide price trend badge in horizontal layout to save space */
+  .price-trend { display: none; }
+
+  .card-body {
+    padding: 0.85rem 1rem;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+  .card-cat { font-size: 0.63rem; }
+  .card-title {
+    font-size: 0.88rem;
+    -webkit-line-clamp: 2;
+    line-height: 1.35;
+  }
+  .card-pricing { margin-top: 0.1rem; }
+  .card-price { font-size: 1.35rem; }
+  .card-original { font-size: 0.78rem; }
+  .card-savings {
+    font-size: 0.63rem;
+    padding: 0.15rem 0.45rem;
+  }
+
+  /* CTA becomes a full-width strip at the bottom of the row */
+  .card-cta {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    border-radius: calc(var(--radius-sm) - 4px);
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+  }
+
+  /* Featured pseudo – keep it short */
+  .offer-card.featured::after {
+    font-size: 0.55rem;
+    padding: 0.2rem 0.5rem;
+    top: 8px;
+    left: 8px;
+  }
+
+  /* ── Footer ── */
+  .site-footer { padding: 2rem 0 5rem; } /* extra bottom for mobile browser chrome */
 }
 
+/* ─────────────────────────────────────────
+   RESPONSIVE – PHONE (max 480px)
+───────────────────────────────────────── */
 @media (max-width: 480px) {
-  .hero-title {
-    font-size: 1.85rem;
+  .container { padding: 0 1rem; }
+
+  .hero-title { font-size: 1.9rem; }
+
+  /* Slightly smaller image panel on tiny phones */
+  .card-img-wrap {
+    width: 110px;
+    min-width: 110px;
   }
-  .card-price {
-    font-size: 1.5rem;
+  .card-price { font-size: 1.25rem; }
+
+  .filter-pill {
+    font-size: 0.74rem;
+    padding: 0.45rem 0.85rem;
   }
-  .container {
-    padding: 0 1.25rem;
-  }
-  .marquee-section {
-    padding: 0.75rem 0;
-  }
+
+  .marquee-section { padding: 0.5rem 0; }
+
+  /* Stats wrap into 2 columns */
+  .stats-bar { flex-wrap: wrap; justify-content: center; }
 }
 
 /* Navbar Terminal Button */
@@ -903,21 +1019,41 @@ body {
 
 /* Responsive point styling override */
 @media (max-width: 768px) {
-  .point-section {
-    padding: 2.5rem 0;
-  }
-  .point-header {
-    margin-bottom: 2rem;
-  }
+  .point-section { padding: 2rem 0; }
+  .point-header { margin-bottom: 1.5rem; }
+  .point-title { font-size: 1.75rem; }
+  .point-subtitle { font-size: 0.88rem; }
   .point-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
-  .point-card-pricing {
-    margin: 0.15rem 0;
+  .point-card {
+    /* Horizontal layout like offer cards */
+    flex-direction: row;
+    min-height: 140px;
   }
-  .point-card-price {
-    font-size: 1.65rem;
+  .point-card:hover { transform: none; box-shadow: none; }
+  .point-card:active { transform: scale(0.985); transition: transform 0.12s; }
+  .point-img-container {
+    width: 140px;
+    min-width: 140px;
+    aspect-ratio: 1;
+    padding: 0.75rem;
+    border-right: 1px solid var(--clr-border);
+    border-bottom: none;
+    flex-shrink: 0;
   }
+  .point-card:hover .point-img-container img { transform: none; }
+  .point-card-body { padding: 1rem; gap: 0.5rem; }
+  .point-card-pricing { margin: 0; }
+  .point-card-price { font-size: 1.45rem; }
+  .point-card-original { font-size: 0.82rem; }
+  .point-card-subtitle { font-size: 0.74rem; min-height: unset; }
+  .point-card-features { display: none; } /* hide feature list in compact view */
+  .point-card-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+  .point-card-cashback { font-size: 0.58rem; padding: 0.2rem 0.45rem; }
 }
 
