@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import HomeClient from "@/components/HomeClient";
 import { prisma } from "@/lib/db";
 
@@ -16,7 +18,7 @@ const MOCK_OFFERS = [
     price: 24999,
     originalPrice: 28999,
     discount: 13,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_615873-MLU72007534374_092023-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Tecnología",
     isFeatured: true,
@@ -27,7 +29,7 @@ const MOCK_OFFERS = [
     price: 1899,
     originalPrice: 2499,
     discount: 24,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_896350-MLM51025537542_082022-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Moda",
   },
@@ -37,7 +39,7 @@ const MOCK_OFFERS = [
     price: 4500,
     originalPrice: 6500,
     discount: 30,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_900605-MLA44358896000_122020-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Gaming",
     isFeatured: true,
@@ -48,7 +50,7 @@ const MOCK_OFFERS = [
     price: 1599,
     originalPrice: 2999,
     discount: 46,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_918073-MLM54911364401_042023-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Hogar",
   },
@@ -58,7 +60,7 @@ const MOCK_OFFERS = [
     price: 5999,
     originalPrice: 8499,
     discount: 29,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_791685-MLM52148448442_102022-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Audio",
   },
@@ -68,7 +70,7 @@ const MOCK_OFFERS = [
     price: 6499,
     originalPrice: 9999,
     discount: 35,
-    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_986767-MLA52438665282_112022-O.webp",
+    imageUrl: "https://images.unsplash.com/photo-1598550476439-6847785fce6e?q=80&w=600&auto=format&fit=crop",
     affiliateUrl: "https://www.mercadolibre.com.mx",
     category: "Gaming",
   },
