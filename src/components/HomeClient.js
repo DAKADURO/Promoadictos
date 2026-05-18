@@ -57,6 +57,15 @@ export default function HomeClient({ offers }) {
     return acc;
   }, 0);
 
+  const dynamicCategories = useMemo(() => {
+    const baseCategories = ["Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza"];
+    const activeCategories = Array.from(new Set(currentOffers.map(o => o.category)));
+    const extraCategories = activeCategories.filter(
+      cat => cat && cat !== "General" && cat !== "Otros" && !baseCategories.includes(cat)
+    );
+    return ["Todas", ...baseCategories, ...extraCategories, "Otros"];
+  }, [currentOffers]);
+
   return (
     <>
       <Navbar onSearch={setSearch} />
@@ -111,7 +120,7 @@ export default function HomeClient({ offers }) {
           </div>
 
           {/* Category filter */}
-          <CategoryFilter onFilter={setCategory} />
+          <CategoryFilter onFilter={setCategory} categories={dynamicCategories} />
 
           {filtered.length > 0 ? (
             <div className="offers-grid">

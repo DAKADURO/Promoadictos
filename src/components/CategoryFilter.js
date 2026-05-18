@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-const CATEGORIES = ["Todas", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
+const DEFAULT_CATEGORIES = ["Todas", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
 
-export default function CategoryFilter({ onFilter }) {
+export default function CategoryFilter({ onFilter, categories = DEFAULT_CATEGORIES }) {
   const [active, setActive] = useState("Todas");
 
   const handleClick = (cat) => {
@@ -14,7 +14,7 @@ export default function CategoryFilter({ onFilter }) {
 
   return (
     <div className="filter-bar" role="tablist" aria-label="Filtrar por categoría">
-      {CATEGORIES.map((cat) => (
+      {categories.map((cat) => (
         <button
           key={cat}
           className={`filter-pill${active === cat ? " active" : ""}`}

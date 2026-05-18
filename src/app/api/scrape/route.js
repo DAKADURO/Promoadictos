@@ -346,7 +346,49 @@ function classifyCategory(title, categoryName, categoryPath) {
     return "Belleza";
   }
 
+  const mapped = mapMercadoLibreCategory(categoryPath);
+  if (mapped) return mapped;
+
   return "General";
+}
+
+// Map any Mercado Libre category path to a beautiful simplified name dynamically
+function mapMercadoLibreCategory(path) {
+  if (!Array.isArray(path) || path.length === 0) return null;
+  
+  const topLevel = path[0].toLowerCase();
+  
+  if (topLevel.includes("belleza") || topLevel.includes("cuidado personal")) return "Belleza";
+  if (topLevel.includes("computación") || topLevel.includes("computacion") || topLevel.includes("celulares") || topLevel.includes("cámaras") || topLevel.includes("camaras")) return "Tecnología";
+  if (topLevel.includes("electrónica") || topLevel.includes("electronica")) {
+    if (path.some(p => p.toLowerCase().includes("audio") || p.toLowerCase().includes("audífonos") || p.toLowerCase().includes("bocina"))) {
+      return "Audio";
+    }
+    return "Tecnología";
+  }
+  if (topLevel.includes("hogar") || topLevel.includes("muebles") || topLevel.includes("jardín") || topLevel.includes("jardin")) return "Hogar";
+  if (topLevel.includes("ropa") || topLevel.includes("bolsas") || topLevel.includes("calzado") || topLevel.includes("joyas") || topLevel.includes("relojes")) return "Moda";
+  if (topLevel.includes("consolas") || topLevel.includes("videojuegos") || topLevel.includes("juegos de video")) return "Gaming";
+  if (topLevel.includes("deportes") || topLevel.includes("fitness")) return "Deportes";
+  
+  // Dynamic categories:
+  if (topLevel.includes("juegos y juguetes") || topLevel.includes("juguetes")) return "Juguetes";
+  if (topLevel.includes("herramientas")) return "Herramientas";
+  if (topLevel.includes("bebés") || topLevel.includes("bebes")) return "Bebés";
+  if (topLevel.includes("automotriz") || topLevel.includes("accesorios para vehículos")) return "Automotriz";
+  if (topLevel.includes("instrumentos musicales")) return "Música";
+  if (topLevel.includes("libros")) return "Libros";
+  if (topLevel.includes("alimentos y bebidas") || topLevel.includes("despensa")) return "Alimentos";
+  if (topLevel.includes("mascotas")) return "Mascotas";
+  
+  // Fallback: Use the second-level path if it exists, otherwise use the first word of the top-level path capitalized!
+  if (path.length > 1 && path[1] && path[1].length < 25) {
+    // Capitalize first letter of each word
+    return path[1].trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+  
+  const rawWord = path[0].split(/[,\s&]/)[0]; // First word of top category
+  return rawWord.charAt(0).toUpperCase() + rawWord.slice(1).toLowerCase();
 }
 
 export async function GET(req) {

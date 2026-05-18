@@ -332,7 +332,7 @@ export default function AdminPage() {
                   <div>
                     <label style={labelStyle}>Categoría</label>
                     <select name="category" value={formData.category} onChange={handleChange} style={{ ...inputStyle, appearance: "none" }}>
-                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      {Array.from(new Set([...CATEGORIES, formData.category])).map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
