@@ -245,7 +245,7 @@ export default function AdminPage() {
           </div>
 
           {/* Main grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: "2rem", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "380px minmax(0, 1fr)", gap: "2rem", alignItems: "start" }}>
 
             {/* Form */}
             <form onSubmit={handleSubmit} style={{
