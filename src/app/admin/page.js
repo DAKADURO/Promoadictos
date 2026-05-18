@@ -8,7 +8,7 @@ import {
 import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar";
 
-const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Otros"];
+const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
 
 const EMPTY_FORM = {
   title: "", price: "", originalPrice: "", discount: "",

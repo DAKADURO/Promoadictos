@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const CATEGORIES = ["Todas", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Otros"];
+const CATEGORIES = ["Todas", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
 
 export default function CategoryFilter({ onFilter }) {
   const [active, setActive] = useState("Todas");

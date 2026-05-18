@@ -321,6 +321,31 @@ function classifyCategory(title, categoryName, categoryPath) {
     return "Deportes";
   }
 
+  // 7. Belleza (Cosméticos, Maquillaje, Skincare)
+  if (
+    searchText.includes("maquillaje") ||
+    searchText.includes("cosmetico") ||
+    searchText.includes("cosmético") ||
+    searchText.includes("skincare") ||
+    searchText.includes("crema facial") ||
+    searchText.includes("protector solar") ||
+    searchText.includes("bloqueador") ||
+    searchText.includes("labial") ||
+    searchText.includes("rimel") ||
+    searchText.includes("máscara de pestañas") ||
+    searchText.includes("base de maquillaje") ||
+    searchText.includes("serum") ||
+    searchText.includes("sérum") ||
+    searchText.includes("belleza") ||
+    searchText.includes("cuidado personal") ||
+    searchText.includes("perfume") ||
+    searchText.includes("locion") ||
+    searchText.includes("loción") ||
+    searchText.includes("fragancia")
+  ) {
+    return "Belleza";
+  }
+
   return "General";
 }
 
