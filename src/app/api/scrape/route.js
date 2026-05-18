@@ -121,7 +121,11 @@ function findFeaturedProductDetails(obj) {
 
   if (Array.isArray(obj.polycards) && obj.polycards.length > 0) {
     const firstCard = obj.polycards[0];
-    const details = { title: "", price: null, originalPrice: null, discount: null };
+    const details = { title: "", price: null, originalPrice: null, discount: null, categoryId: null };
+
+    if (firstCard.metadata && firstCard.metadata.category_id) {
+      details.categoryId = firstCard.metadata.category_id;
+    }
 
     if (Array.isArray(firstCard.components)) {
       for (const comp of firstCard.components) {
@@ -147,6 +151,177 @@ function findFeaturedProductDetails(obj) {
   }
 
   return null;
+}
+
+// Fetch category path from root from the official Mercado Libre categories API
+async function getMercadoLibreCategoryPath(categoryId) {
+  if (!categoryId) return { name: "", path: [] };
+  try {
+    const res = await fetch(`https://api.mercadolibre.com/categories/${categoryId}`);
+    if (res.ok) {
+      const data = await res.json();
+      const name = data.name || "";
+      const path = Array.isArray(data.path_from_root) ? data.path_from_root.map(p => p.name) : [];
+      return { name, path };
+    }
+  } catch (err) {
+    console.error("Error fetching ML category path:", err);
+  }
+  return { name: "", path: [] };
+}
+
+// Classify category intelligently based on title, category name, and entire path
+function classifyCategory(title, categoryName, categoryPath) {
+  const pathStr = Array.isArray(categoryPath) ? categoryPath.join(" ") : "";
+  const searchText = `${title} ${categoryName || ""} ${pathStr}`.toLowerCase();
+
+  // 1. Gaming
+  if (
+    searchText.includes("gaming") ||
+    searchText.includes("gamer") ||
+    searchText.includes("nintendo") ||
+    searchText.includes("switch") ||
+    searchText.includes("playstation") ||
+    searchText.includes("xbox") ||
+    searchText.includes("ps5") ||
+    searchText.includes("ps4") ||
+    searchText.includes("consola") ||
+    searchText.includes("videojuegos") ||
+    searchText.includes("rtx") ||
+    searchText.includes("ryzen") ||
+    searchText.includes("tarjeta gráfica")
+  ) {
+    return "Gaming";
+  }
+
+  // 2. Audio
+  if (
+    searchText.includes("audifonos") ||
+    searchText.includes("auriculares") ||
+    searchText.includes("bluetooth") ||
+    searchText.includes("bocina") ||
+    searchText.includes("parlante") ||
+    searchText.includes("soundcore") ||
+    searchText.includes("in-ear") ||
+    searchText.includes("diadema") ||
+    searchText.includes("microfono") ||
+    searchText.includes("altavoz") ||
+    searchText.includes("soundbar") ||
+    searchText.includes("barra de sonido") ||
+    searchText.includes("audio")
+  ) {
+    return "Audio";
+  }
+
+  // 3. Tecnología (General Tech/Electronics)
+  if (
+    searchText.includes("celular") ||
+    searchText.includes("smartphone") ||
+    searchText.includes("iphone") ||
+    searchText.includes("galaxy") ||
+    searchText.includes("laptop") ||
+    searchText.includes("computación") ||
+    searchText.includes("computadora") ||
+    searchText.includes("pantalla") ||
+    searchText.includes("smart watch") ||
+    searchText.includes("smartwatch") ||
+    searchText.includes("reloj inteligente") ||
+    searchText.includes("cargador") ||
+    searchText.includes("tablet") ||
+    searchText.includes("kindle") ||
+    searchText.includes("cámara") ||
+    searchText.includes("gopro") ||
+    searchText.includes("point") ||
+    searchText.includes("hidrogel") ||
+    searchText.includes("procesador") ||
+    searchText.includes("memoria ram") ||
+    searchText.includes("disco duro") ||
+    searchText.includes("ssd") ||
+    searchText.includes("intel") ||
+    searchText.includes("amd") ||
+    searchText.includes("monitor") ||
+    searchText.includes("electrónica") ||
+    searchText.includes("tecnología")
+  ) {
+    return "Tecnología";
+  }
+
+  // 4. Hogar
+  if (
+    searchText.includes("hogar") ||
+    searchText.includes("mueble") ||
+    searchText.includes("jardín") ||
+    searchText.includes("sarten") ||
+    searchText.includes("olla") ||
+    searchText.includes("cocina") ||
+    searchText.includes("licuadora") ||
+    searchText.includes("aspiradora") ||
+    searchText.includes("colchon") ||
+    searchText.includes("almohada") ||
+    searchText.includes("sabanas") ||
+    searchText.includes("vaso") ||
+    searchText.includes("termo") ||
+    searchText.includes("comedor") ||
+    searchText.includes("cuchillo") ||
+    searchText.includes("herramientas") ||
+    searchText.includes("foco") ||
+    searchText.includes("led") ||
+    searchText.includes("freidora") ||
+    searchText.includes("cafetera") ||
+    searchText.includes("aire acondicionado") ||
+    searchText.includes("ventilador") ||
+    searchText.includes("herramienta") ||
+    searchText.includes("decoración") ||
+    searchText.includes("batería de cocina")
+  ) {
+    return "Hogar";
+  }
+
+  // 5. Moda
+  if (
+    searchText.includes("moda") ||
+    searchText.includes("ropa") ||
+    searchText.includes("calzado") ||
+    searchText.includes("tenis") ||
+    searchText.includes("playera") ||
+    searchText.includes("pantalon") ||
+    searchText.includes("sudadera") ||
+    searchText.includes("mochila") ||
+    searchText.includes("vestido") ||
+    searchText.includes("reloj de mano") ||
+    searchText.includes("lentes") ||
+    searchText.includes("gafas") ||
+    searchText.includes("zapatos") ||
+    searchText.includes("botas") ||
+    searchText.includes("camisa") ||
+    searchText.includes("chaqueta") ||
+    searchText.includes("abrigo") ||
+    searchText.includes("bolso") ||
+    searchText.includes("joyería")
+  ) {
+    return "Moda";
+  }
+
+  // 6. Deportes
+  if (
+    searchText.includes("deporte") ||
+    searchText.includes("balon") ||
+    searchText.includes("mancuernas") ||
+    searchText.includes("pesa") ||
+    searchText.includes("bicicleta") ||
+    searchText.includes("gym") ||
+    searchText.includes("ejercicio") ||
+    searchText.includes("futbol") ||
+    searchText.includes("basquetbol") ||
+    searchText.includes("entrenamiento") ||
+    searchText.includes("suplemento") ||
+    searchText.includes("proteina") ||
+    searchText.includes("fitness")
+  ) {
+    return "Deportes";
+  }
+
+  return "General";
 }
 
 export async function GET(req) {
@@ -187,7 +362,7 @@ export async function GET(req) {
 
       // Extract details from Nordic State JSON
       const state = extractNordicState(html);
-      let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl };
+      let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl, categoryId: null };
 
       if (state) {
         // 1. Try to extract details directly from the first polycard in the state (fastest, 100% accurate, no API limits!)
@@ -198,6 +373,7 @@ export async function GET(req) {
           details.price = localDetails.price;
           details.originalPrice = localDetails.originalPrice;
           details.discount = localDetails.discount;
+          details.categoryId = localDetails.categoryId;
         } else {
           // 2. Fallback: try to find the exact highlighted product ID to get perfect data from the official API
           const featuredId = findFeaturedProductId(state);
@@ -210,6 +386,7 @@ export async function GET(req) {
                 details.title = item.title;
                 details.price = item.price;
                 details.originalPrice = item.original_price || null;
+                details.categoryId = item.category_id || null;
                 if (details.originalPrice && details.originalPrice > details.price) {
                   details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
                 }
@@ -244,6 +421,15 @@ export async function GET(req) {
         details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
       }
 
+      // Resolve the category intelligently
+      let detectedCategory = "General";
+      if (details.categoryId) {
+        const catInfo = await getMercadoLibreCategoryPath(details.categoryId);
+        detectedCategory = classifyCategory(details.title, catInfo.name, catInfo.path);
+      } else {
+        detectedCategory = classifyCategory(details.title, "", []);
+      }
+
       return NextResponse.json({
         success: true,
         title: details.title,
@@ -252,6 +438,7 @@ export async function GET(req) {
         discount: details.discount,
         imageUrl: details.imageUrl || imageUrl,
         affiliateUrl: targetUrl, // Keep original meli.la affiliate link
+        category: detectedCategory,
       });
     }
 
@@ -282,6 +469,15 @@ export async function GET(req) {
         discount = Math.round(((originalPrice - price) / originalPrice) * 100);
       }
 
+      // Resolve the category intelligently
+      let detectedCategory = "General";
+      if (item.category_id) {
+        const catInfo = await getMercadoLibreCategoryPath(item.category_id);
+        detectedCategory = classifyCategory(item.title, catInfo.name, catInfo.path);
+      } else {
+        detectedCategory = classifyCategory(item.title, "", []);
+      }
+
       return NextResponse.json({
         success: true,
         title: item.title,
@@ -290,6 +486,7 @@ export async function GET(req) {
         discount: discount,
         imageUrl: imageUrl,
         affiliateUrl: targetUrl, // Use original URL
+        category: detectedCategory,
       });
     }
 

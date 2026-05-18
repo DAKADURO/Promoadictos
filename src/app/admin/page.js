@@ -43,6 +43,7 @@ export default function AdminPage() {
           discount: data.discount !== null && data.discount !== undefined ? data.discount.toString() : prev.discount,
           imageUrl: data.imageUrl || prev.imageUrl,
           affiliateUrl: data.affiliateUrl || prev.affiliateUrl || url,
+          category: data.category || prev.category,
         }));
         showToast("¡Datos importados con éxito!");
       } else {
