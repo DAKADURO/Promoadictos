@@ -21,12 +21,44 @@ export default function AdminPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => { fetchOffers(); }, []);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleImport = async () => {
+    if (!importUrl) {
+      showToast("Por favor ingresa un link primero", "error");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch(`/api/scrape?url=${encodeURIComponent(importUrl)}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFormData(prev => ({
+          ...prev,
+          title: data.title || prev.title,
+          price: data.price !== null && data.price !== undefined ? data.price.toString() : prev.price,
+          originalPrice: data.originalPrice !== null && data.originalPrice !== undefined ? data.originalPrice.toString() : prev.originalPrice,
+          discount: data.discount !== null && data.discount !== undefined ? data.discount.toString() : prev.discount,
+          imageUrl: data.imageUrl || prev.imageUrl,
+          affiliateUrl: data.affiliateUrl || prev.affiliateUrl || importUrl,
+        }));
+        showToast("¡Datos importados con éxito!");
+      } else {
+        showToast(data?.error || "Error al importar el enlace", "error");
+      }
+    } catch (err) {
+      showToast("Error de conexión al importar", "error");
+    } finally {
+      setImporting(false);
+    }
   };
 
   const fetchOffers = async () => {
@@ -179,6 +211,46 @@ export default function AdminPage() {
               </h2>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {/* Autocompletar inteligente */}
+                <div style={{
+                  background: "rgba(255,92,0,0.03)",
+                  border: "1px dashed rgba(255,92,0,0.25)",
+                  borderRadius: "0.75rem",
+                  padding: "0.85rem",
+                  marginBottom: "0.25rem",
+                }}>
+                  <label style={{ ...labelStyle, color: "var(--clr-orange)", marginBottom: "0.35rem", display: "block" }}>⚡ Autocompletar con Link</label>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <input
+                      type="url"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      placeholder="Pega tu link meli.la..."
+                      style={{ ...inputStyle, background: "rgba(0,0,0,0.15)", flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      disabled={importing}
+                      onClick={handleImport}
+                      style={{
+                        background: importing ? "var(--clr-dim)" : "var(--clr-orange)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "0.6rem",
+                        padding: "0 1.2rem",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        cursor: importing ? "not-allowed" : "pointer",
+                        transition: "all 0.3s",
+                        whiteSpace: "nowrap",
+                        boxShadow: importing ? "none" : "0 2px 8px rgba(255,92,0,0.2)",
+                      }}
+                    >
+                      {importing ? "..." : "✦ Importar"}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Title */}
                 <div>
                   <label style={labelStyle}>Título del producto</label>
