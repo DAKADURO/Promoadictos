@@ -20,7 +20,13 @@ export default function OfferCard({ offer, index = 0 }) {
     >
       {/* Image */}
       <div className="card-img-wrap">
-        <img src={imageUrl} alt={title} loading="lazy" />
+        <img
+          src={imageUrl}
+          alt={title}
+          loading={index < 2 ? "eager" : "lazy"}
+          fetchPriority={index < 2 ? "high" : "low"}
+          decoding="async"
+        />
         {discount && (
           <span className="discount-badge">-{discount}%</span>
         )}

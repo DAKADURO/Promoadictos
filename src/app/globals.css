@@ -262,6 +262,8 @@ body {
   cursor: pointer;
   text-decoration: none;
   color: inherit;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
 }
 .offer-card:hover {
   transform: translateY(-10px) scale(1.01);
@@ -461,14 +463,85 @@ body {
    RESPONSIVE
 ───────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hero { padding: 4.5rem 0 2.5rem; }
-  .offers-grid { grid-template-columns: 1fr; gap: 1.25rem; }
-  .nav-search { display: none; }
-  .stats-bar { gap: 0.75rem; }
-  .stat-item { font-size: 0.72rem; padding: 0.4rem 0.75rem; }
+  .nav-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.65rem 0;
+    gap: 0.65rem;
+  }
+  .nav-brand {
+    flex: 1;
+  }
+  .nav-brand-logo {
+    height: 40px;
+  }
+  .nav-brand-name {
+    font-size: 1.15rem;
+  }
+  .nav-brand-tagline {
+    display: none;
+  }
+  .nav-search {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    order: 3;
+  }
+  .nav-search input {
+    padding: 0.5rem 1rem 0.5rem 2.2rem;
+    font-size: 0.85rem;
+  }
+  .nav-search-icon {
+    width: 14px;
+    height: 14px;
+    left: 0.75rem;
+  }
+  .nav-actions {
+    order: 2;
+  }
+  .btn-ghost {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+
+  .hero {
+    padding: 1.75rem 0 1.25rem;
+  }
+  .hero::before {
+    width: 320px;
+    height: 320px;
+    top: -40px;
+  }
+  .hero-sub {
+    font-size: 0.85rem;
+    margin-top: 0.6rem;
+  }
+
+  .offers-grid {
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+  }
+  .stats-bar {
+    gap: 0.5rem;
+    margin-top: 0.75rem !important;
+  }
+  .stat-item {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.65rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .hero-title { font-size: 2.2rem; }
-  .card-price { font-size: 1.5rem; }
+  .hero-title {
+    font-size: 1.85rem;
+  }
+  .card-price {
+    font-size: 1.5rem;
+  }
+  .container {
+    padding: 0 1.25rem;
+  }
+  .marquee-section {
+    padding: 0.75rem 0;
+  }
 }
