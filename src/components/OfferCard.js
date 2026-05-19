@@ -2,17 +2,22 @@
 import { ExternalLink, TrendingDown, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function OfferCard({ offer, index = 0 }) {
+export default function OfferCard({ offer, index = 0, onOpenModal }) {
   const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, isFeatured } = offer;
 
   const savings = originalPrice ? originalPrice - price : 0;
   const isHotDeal = discount && discount >= 30;
 
+  const handleCardClick = (e) => {
+    // Si se hace clic en el cuerpo de la tarjeta, abrir el modal interactivo
+    if (onOpenModal) {
+      onOpenModal(offer);
+    }
+  };
+
   return (
-    <motion.a
-      href={affiliateUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+    <motion.div
+      onClick={handleCardClick}
       className={`offer-card${isFeatured ? " featured" : ""}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -68,14 +73,21 @@ export default function OfferCard({ offer, index = 0 }) {
           </span>
         )}
 
-        <div
+        <a
+          href={affiliateUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.stopPropagation(); // Evitar que abra el modal
+          }}
           className="card-cta"
           id={`offer-cta-${offer.id}`}
         >
           Ver oferta
           <ExternalLink size={15} strokeWidth={2.5} />
-        </div>
+        </a>
       </div>
-    </motion.a>
+    </motion.div>
   );
 }
+

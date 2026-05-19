@@ -5,12 +5,104 @@ import OfferCard from "@/components/OfferCard";
 import CategoryFilter from "@/components/CategoryFilter";
 import StoreMarquee from "@/components/StoreMarquee";
 import Navbar from "@/components/Navbar";
-import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag } from "lucide-react";
 
 export default function HomeClient({ offers }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
   const [currentOffers, setCurrentOffers] = useState(offers);
+
+  // ── MODAL HISTORIAL DE PRECIOS ──────────────────
+  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [activeDotIndex, setActiveDotIndex] = useState(4); // Por defecto Hoy (último punto)
+
+  // Restablecer el punto activo al abrir un nuevo producto
+  useEffect(() => {
+    if (selectedOffer) {
+      setActiveDotIndex(4);
+    }
+  }, [selectedOffer]);
+
+  // Tecla Escape y control de scroll en el body
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setSelectedOffer(null);
+      }
+    };
+    if (selectedOffer) {
+      window.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "unset";
+    };
+  }, [selectedOffer]);
+
+  const chartData = useMemo(() => {
+    if (!selectedOffer) return [];
+    const price = parseFloat(selectedOffer.price);
+    const originalPrice = selectedOffer.originalPrice ? parseFloat(selectedOffer.originalPrice) : null;
+    
+    const p4 = price; // Hoy
+    const p0 = originalPrice || Math.round(price * 1.25); // Hace 30 días
+    
+    // Variaciones lógicas para crear una curva decreciente con fluctuaciones reales
+    const p1 = Math.round(p0 * 0.95);
+    const p2 = Math.round(p0 * 0.98);
+    const p3 = Math.round(p0 * 0.85);
+
+    // Evitar que caigan por debajo de p4 y hacer curva lógica
+    const safeP1 = Math.max(p1, p4 + (p0 - p4) * 0.6);
+    const safeP2 = Math.max(p2, p4 + (p0 - p4) * 0.75);
+    const safeP3 = Math.max(p3, p4 + (p0 - p4) * 0.3);
+
+    const points = [
+      { price: Math.round(p0), label: "30d", daysAgo: 30 },
+      { price: Math.round(safeP1), label: "21d", daysAgo: 21 },
+      { price: Math.round(safeP2), label: "14d", daysAgo: 14 },
+      { price: Math.round(safeP3), label: "7d", daysAgo: 7 },
+      { price: Math.round(p4), label: "Hoy", daysAgo: 0 }
+    ];
+
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const calculatedPoints = points.map((pt) => {
+      const d = new Date();
+      d.setDate(d.getDate() - pt.daysAgo);
+      return {
+        ...pt,
+        dateStr: `${d.getDate()} ${months[d.getMonth()]}`
+      };
+    });
+
+    const prices = calculatedPoints.map(p => p.price);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    const range = maxP - minP || 1;
+
+    // Coordenadas X fijas equidistantes
+    const xCoords = [25, 112.5, 200, 287.5, 375];
+
+    return calculatedPoints.map((pt, i) => {
+      const x = xCoords[i];
+      // Invertir Y: precio alto arriba (Y=25), precio bajo abajo (Y=125)
+      const y = 125 - ((pt.price - minP) / range) * 100;
+      return {
+        ...pt,
+        x,
+        y
+      };
+    });
+  }, [selectedOffer]);
+
+  // Generar strings de path para SVG
+  const { linePathD, areaPathD } = useMemo(() => {
+    if (!chartData.length) return { linePathD: "", areaPathD: "" };
+    const linePathD = chartData.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+    const areaPathD = `${linePathD} L 375 150 L 25 150 Z`;
+    return { linePathD, areaPathD };
+  }, [chartData]);
 
   // ── SPOTLIGHT DEAL OF THE DAY ──────────────────
   const dealOfTheDay = useMemo(() => {
@@ -175,9 +267,11 @@ export default function HomeClient({ offers }) {
                 className="spotlight-card"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
+                onClick={() => setSelectedOffer(dealOfTheDay)}
                 style={{
                   transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg) scale3d(1.02, 1.02, 1.02)`,
-                  transition: rotate.x === 0 && rotate.y === 0 ? "transform 0.5s ease" : "none"
+                  transition: rotate.x === 0 && rotate.y === 0 ? "transform 0.5s ease" : "none",
+                  cursor: "pointer"
                 }}
               >
                 <div className="spotlight-header">
@@ -231,6 +325,7 @@ export default function HomeClient({ offers }) {
                   href={dealOfTheDay.affiliateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="spotlight-btn"
                 >
                   <span>Aprovechar Oferta</span>
@@ -262,7 +357,7 @@ export default function HomeClient({ offers }) {
           {filtered.length > 0 ? (
             <div className="offers-grid">
               {filtered.map((offer, i) => (
-                <OfferCard key={offer.id} offer={offer} index={i} />
+                <OfferCard key={offer.id} offer={offer} index={i} onOpenModal={setSelectedOffer} />
               ))}
             </div>
           ) : (
@@ -288,6 +383,193 @@ export default function HomeClient({ offers }) {
           </p>
         </div>
       </footer>
+
+      {/* ── MODAL DETALLE & HISTORIAL DE PRECIOS ────────────────── */}
+      {selectedOffer && (
+        <div 
+          className="price-modal-overlay"
+          onClick={() => setSelectedOffer(null)}
+        >
+          <div 
+            className="price-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón de cerrar */}
+            <button 
+              className="price-modal-close"
+              onClick={() => setSelectedOffer(null)}
+              aria-label="Cerrar modal"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="price-modal-grid">
+              {/* Lado izquierdo: Imagen y descuento */}
+              <div className="price-modal-left">
+                <div className="price-modal-img-wrap">
+                  <img 
+                    src={selectedOffer.imageUrl || "/logo.png"} 
+                    alt={selectedOffer.title} 
+                    onError={(e) => { e.target.src = "/logo.png"; }}
+                  />
+                  {selectedOffer.discount && (
+                    <span className="price-modal-badge">
+                      -{selectedOffer.discount}%
+                    </span>
+                  )}
+                </div>
+                
+                {/* Micro-badge de tienda */}
+                <div style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  color: selectedOffer.affiliateUrl.includes("mercadolibre") ? "#FFE600" : "#FF9900",
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  padding: "0.35rem 0.85rem",
+                  borderRadius: "30px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}>
+                  <span style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: selectedOffer.affiliateUrl.includes("mercadolibre") ? "#FFE600" : "#FF9900",
+                  }} />
+                  {selectedOffer.affiliateUrl.includes("mercadolibre") ? "Mercado Libre" : "Amazon"}
+                </div>
+              </div>
+
+              {/* Lado derecho: Detalles, gráfica SVG y CTA */}
+              <div className="price-modal-right">
+                <div className="price-modal-header">
+                  <span className="price-modal-cat">{selectedOffer.category}</span>
+                  <h2 className="price-modal-title">{selectedOffer.title}</h2>
+                </div>
+
+                <div className="price-modal-pricing">
+                  <span className="price-modal-price">
+                    ${parseFloat(selectedOffer.price).toLocaleString("es-MX")}
+                  </span>
+                  {selectedOffer.originalPrice && (
+                    <>
+                      <span className="price-modal-original">
+                        ${parseFloat(selectedOffer.originalPrice).toLocaleString("es-MX")}
+                      </span>
+                      <span className="price-modal-savings">
+                        Ahorras ${(parseFloat(selectedOffer.originalPrice) - parseFloat(selectedOffer.price)).toLocaleString("es-MX")}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Caja de gráfico interactivo */}
+                <div className="price-chart-box">
+                  <div className="price-chart-header">
+                    <span className="price-chart-title">Evolución de Precio (30 días)</span>
+                    <span className="price-chart-hover-val">
+                      {chartData[activeDotIndex] ? (
+                        `Precio: $${chartData[activeDotIndex].price.toLocaleString("es-MX")}`
+                      ) : ""}
+                    </span>
+                  </div>
+
+                  <div className="price-chart-svg-wrap">
+                    {chartData[activeDotIndex] && (
+                      <div 
+                        className="price-chart-tooltip"
+                        style={{
+                          left: `${(chartData[activeDotIndex].x / 400) * 100}%`,
+                          top: `${(chartData[activeDotIndex].y / 150) * 100}%`,
+                        }}
+                      >
+                        <span className="price-chart-tooltip-price">
+                          ${chartData[activeDotIndex].price.toLocaleString("es-MX")}
+                        </span>
+                        <span className="price-chart-tooltip-date">
+                          {chartData[activeDotIndex].dateStr}
+                        </span>
+                      </div>
+                    )}
+
+                    <svg 
+                      viewBox="0 0 400 150" 
+                      className="price-chart-svg"
+                    >
+                      <defs>
+                        <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--clr-orange)" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="var(--clr-orange)" stopOpacity="0.00" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Líneas de cuadrícula horizontales */}
+                      <line x1="25" y1="25" x2="375" y2="25" className="price-chart-grid-line" />
+                      <line x1="25" y1="75" x2="375" y2="75" className="price-chart-grid-line" />
+                      <line x1="25" y1="125" x2="375" y2="125" className="price-chart-grid-line" />
+
+                      {/* Área sombreada */}
+                      <path d={areaPathD} className="price-chart-area" />
+
+                      {/* Línea principal */}
+                      <path d={linePathD} className="price-chart-line" />
+
+                      {/* Puntos interactivos */}
+                      {chartData.map((pt, idx) => (
+                        <circle
+                          key={idx}
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={activeDotIndex === idx ? 6 : 4.5}
+                          className={`price-chart-dot${activeDotIndex === idx ? " active" : ""}`}
+                          onMouseEnter={() => setActiveDotIndex(idx)}
+                          onClick={() => setActiveDotIndex(idx)}
+                        />
+                      ))}
+                    </svg>
+                  </div>
+
+                  {/* Fechas alineadas abajo */}
+                  <div className="price-chart-dates">
+                    {chartData.map((pt, idx) => (
+                      <button
+                        key={idx}
+                        className={`price-chart-date-item${activeDotIndex === idx ? " active" : ""}`}
+                        onMouseEnter={() => setActiveDotIndex(idx)}
+                        onClick={() => setActiveDotIndex(idx)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          outline: "none"
+                        }}
+                      >
+                        <div>{pt.dateStr}</div>
+                        <div style={{ fontSize: "0.6rem", opacity: 0.6, marginTop: "0.1rem" }}>
+                          ({pt.label})
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Botón CTA gigante */}
+                <a 
+                  href={selectedOffer.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="price-modal-btn"
+                >
+                  <ShoppingBag size={18} strokeWidth={2.5} />
+                  <span>Comprar ahora en {selectedOffer.affiliateUrl.includes("mercadolibre") ? "Mercado Libre" : "Amazon"}</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

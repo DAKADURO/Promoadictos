@@ -1432,3 +1432,404 @@ body {
   .point-card-cashback { font-size: 0.58rem; padding: 0.2rem 0.45rem; }
 }
 
+/* ─────────────────────────────────────────
+   HISTORIAL DE PRECIOS MODAL & SVG GRAPH (OPCIÓN 2)
+   ───────────────────────────────────────── */
+.price-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(3, 5, 10, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.price-modal-card {
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 780px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 92, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+  outline: none;
+}
+
+.price-modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--clr-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  z-index: 10;
+}
+
+.price-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--clr-text);
+  transform: scale(1.05);
+}
+
+.price-modal-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  min-height: 420px;
+}
+
+.price-modal-left {
+  background: rgba(255, 255, 255, 0.015);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.price-modal-img-wrap {
+  width: 200px;
+  height: 200px;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.price-modal-img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.price-modal-badge {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.75rem;
+  background: linear-gradient(135deg, var(--clr-orange) 0%, var(--clr-orange-lt) 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 12px rgba(255, 92, 0, 0.4);
+}
+
+.price-modal-right {
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.price-modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 2rem;
+}
+
+.price-modal-cat {
+  font-size: 0.75rem;
+  color: var(--clr-orange-lt);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.price-modal-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--clr-text);
+}
+
+.price-modal-pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.price-modal-price {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--clr-text);
+  font-family: 'Sora', sans-serif;
+}
+
+.price-modal-original {
+  font-size: 1.1rem;
+  color: var(--clr-muted);
+  text-decoration: line-through;
+}
+
+.price-modal-savings {
+  font-size: 0.85rem;
+  color: var(--clr-green);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+}
+
+/* Gráfico SVG interactivo */
+.price-chart-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.price-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.price-chart-title {
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.price-chart-hover-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--clr-orange-lt);
+  min-height: 1.2rem;
+}
+
+.price-chart-svg-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.price-chart-svg {
+  width: 100%;
+  height: 150px;
+  overflow: visible;
+}
+
+.price-chart-line {
+  fill: none;
+  stroke: var(--clr-orange);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 4px 8px rgba(255, 92, 0, 0.3));
+}
+
+.price-chart-area {
+  fill: url(#chart-gradient);
+}
+
+.price-chart-grid-line {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.price-chart-dot {
+  fill: var(--clr-bg);
+  stroke: var(--clr-orange-lt);
+  stroke-width: 2.5;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.price-chart-dot:hover,
+.price-chart-dot.active {
+  fill: var(--clr-orange);
+  stroke: #fff;
+  stroke-width: 3;
+  r: 7 !important;
+  filter: drop-shadow(0 0 8px var(--clr-orange));
+}
+
+.price-chart-dates {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-top: 0.25rem;
+}
+
+.price-chart-date-item {
+  font-size: 0.72rem;
+  color: var(--clr-dim);
+  font-weight: 500;
+  text-align: center;
+  transition: color 0.2s var(--ease);
+  width: 60px;
+}
+
+.price-chart-date-item.active {
+  color: var(--clr-text);
+  font-weight: 700;
+}
+
+/* Tooltip interno sobre el punto de la gráfica */
+.price-chart-tooltip {
+  position: absolute;
+  background: rgba(15, 22, 40, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 92, 0, 0.3);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-size: 0.75rem;
+  color: var(--clr-text);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  transform: translate(-50%, -100%) translateY(-12px);
+  transition: left 0.15s cubic-bezier(0.22, 1, 0.36, 1), top 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.price-chart-tooltip-price {
+  font-weight: 800;
+  color: var(--clr-orange-lt);
+}
+
+.price-chart-tooltip-date {
+  color: var(--clr-muted);
+  font-size: 0.65rem;
+}
+
+/* CTA gigante */
+.price-modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  background: linear-gradient(135deg, var(--clr-orange) 0%, #ff7a00 100%);
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.05rem;
+  font-weight: 800;
+  padding: 1.1rem;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgba(255, 92, 0, 0.35);
+  transition: all 0.25s var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.price-modal-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: 0.5s;
+}
+
+.price-modal-btn:hover::before {
+  left: 100%;
+  transition: 0.6s var(--ease);
+}
+
+.price-modal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 92, 0, 0.45);
+}
+
+.price-modal-btn:active {
+  transform: translateY(1px);
+}
+
+/* Estilo interactivo para las tarjetas en hover */
+.offer-card {
+  cursor: pointer;
+}
+
+/* Responsive modal styling */
+@media (max-width: 768px) {
+  .price-modal-overlay {
+    padding: 0.75rem;
+    align-items: flex-end; /* Abre desde abajo tipo bottom sheet */
+  }
+
+  .price-modal-card {
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: slideUpMobile 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes slideUpMobile {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .price-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price-modal-left {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 2rem 1.5rem 1.5rem;
+  }
+
+  .price-modal-img-wrap {
+    width: 150px;
+    height: 150px;
+  }
+
+  .price-modal-right {
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .price-modal-title {
+    font-size: 1.1rem;
+  }
+
+  .price-modal-price {
+    font-size: 1.75rem;
+  }
+
+  .price-chart-svg {
+    height: 120px;
+  }
+
+  .price-chart-date-item {
+    font-size: 0.68rem;
+    width: auto;
+  }
+}
+
+
