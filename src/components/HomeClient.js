@@ -11,6 +11,7 @@ export default function HomeClient({ offers }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
   const [currentOffers, setCurrentOffers] = useState(offers);
+  const [sortBy, setSortBy] = useState("hot"); // "hot" | "price-asc" | "recent"
 
   // ── MODAL HISTORIAL DE PRECIOS ──────────────────
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -225,7 +226,7 @@ export default function HomeClient({ offers }) {
   }, []);
 
   const filtered = useMemo(() => {
-    let result = currentOffers;
+    let result = [...currentOffers];
     if (category) {
       result = result.filter((o) => o.category === category);
     }
@@ -237,8 +238,30 @@ export default function HomeClient({ offers }) {
           o.category.toLowerCase().includes(q)
       );
     }
+
+    // Ordenar según criterio
+    result.sort((a, b) => {
+      if (sortBy === "hot") {
+        const discountA = parseInt(a.discount) || 0;
+        const discountB = parseInt(b.discount) || 0;
+        // Priorizar destacados en modo calientes
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        return discountB - discountA;
+      }
+      if (sortBy === "price-asc") {
+        return parseFloat(a.price) - parseFloat(b.price);
+      }
+      if (sortBy === "recent") {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : parseInt(a.id) || 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : parseInt(b.id) || 0;
+        return dateB - dateA;
+      }
+      return 0;
+    });
+
     return result;
-  }, [currentOffers, search, category]);
+  }, [currentOffers, search, category, sortBy]);
 
   const dynamicCategories = useMemo(() => {
     const baseCategories = ["Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza"];
@@ -438,12 +461,42 @@ export default function HomeClient({ offers }) {
           
           {/* MAIN PRODUCT FEED (LEFT COLUMN) */}
           <div className="portal-main-feed">
-            <div className="section-header">
-              <span className="section-dot" />
-              <span className="section-title">Ofertas Activas</span>
-              <span style={{ marginLeft: "auto", fontSize: "0.8rem", color: "var(--clr-muted)" }}>
+            <div className="section-header" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+                <span className="section-dot" />
+                <span className="section-title">Ofertas Activas</span>
+              </div>
+              <span className="section-count-badge" style={{ fontSize: "0.8rem", color: "var(--clr-muted)" }}>
                 {filtered.length} producto{filtered.length !== 1 ? "s" : ""}
               </span>
+
+              {/* Selector de ordenamiento premium */}
+              <div className="sort-selector-wrap" style={{ marginLeft: "auto" }}>
+                <span className="sort-label">Ordenar:</span>
+                <div className="sort-options">
+                  <button 
+                    className={`sort-btn ${sortBy === "hot" ? "active" : ""}`}
+                    onClick={() => setSortBy("hot")}
+                    id="sort-btn-hot"
+                  >
+                    🔥 Calientes
+                  </button>
+                  <button 
+                    className={`sort-btn ${sortBy === "price-asc" ? "active" : ""}`}
+                    onClick={() => setSortBy("price-asc")}
+                    id="sort-btn-price"
+                  >
+                    💵 Precio
+                  </button>
+                  <button 
+                    className={`sort-btn ${sortBy === "recent" ? "active" : ""}`}
+                    onClick={() => setSortBy("recent")}
+                    id="sort-btn-recent"
+                  >
+                    📅 Recientes
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Category filter */}
