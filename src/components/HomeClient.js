@@ -5,13 +5,53 @@ import OfferCard from "@/components/OfferCard";
 import CategoryFilter from "@/components/CategoryFilter";
 import StoreMarquee from "@/components/StoreMarquee";
 import Navbar from "@/components/Navbar";
-import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3 } from "lucide-react";
+import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2 } from "lucide-react";
 
 export default function HomeClient({ offers }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
   const [currentOffers, setCurrentOffers] = useState(offers);
   const [sortBy, setSortBy] = useState("hot"); // "hot" | "price-asc" | "recent"
+
+  // ── ESTADO Y LÓGICA DE SUSCRIPCIÓN A ALERTAS ─────
+  const [subscribeEmail, setSubscribeEmail] = useState("");
+  const [subscribeStatus, setSubscribeStatus] = useState("idle"); // "idle" | "loading" | "success" | "error"
+  const [subscribeError, setSubscribeError] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isSubbed = localStorage.getItem("promoadictos_subscribed");
+      if (isSubbed) {
+        setSubscribeStatus("success");
+      }
+    }
+  }, []);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    setSubscribeError("");
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!subscribeEmail.trim()) {
+      setSubscribeError("Por favor, ingresa tu correo electrónico.");
+      setSubscribeStatus("error");
+      return;
+    }
+    if (!emailRegex.test(subscribeEmail)) {
+      setSubscribeError("Ingresa un correo electrónico válido.");
+      setSubscribeStatus("error");
+      return;
+    }
+
+    setSubscribeStatus("loading");
+
+    setTimeout(() => {
+      setSubscribeStatus("success");
+      if (typeof window !== "undefined") {
+        localStorage.setItem("promoadictos_subscribed", "true");
+      }
+    }, 1200);
+  };
 
   // ── MODAL HISTORIAL DE PRECIOS ──────────────────
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -673,6 +713,99 @@ export default function HomeClient({ offers }) {
                   </div>
                 </div>
               )}
+
+              {/* Módulo de Suscripción Premium a Alertas */}
+              <div className="sidebar-subscribe-card">
+                {subscribeStatus === "success" ? (
+                  <div className="subscribe-success-state">
+                    <div className="subscribe-success-icon">
+                      <CheckCircle2 size={32} color="var(--clr-green)" />
+                    </div>
+                    <h3 className="subscribe-success-title font-display">
+                      ¡Ya estás en el club! 🌋
+                    </h3>
+                    <p className="subscribe-success-desc">
+                      Te notificaremos de las ofertas más calientes en cuanto se detecten. ¡Que comience la caza de gangas!
+                    </p>
+                    <button 
+                      className="subscribe-reset-btn"
+                      onClick={() => {
+                        setSubscribeStatus("idle");
+                        setSubscribeEmail("");
+                        if (typeof window !== "undefined") {
+                          localStorage.removeItem("promoadictos_subscribed");
+                        }
+                      }}
+                    >
+                      Registrar otro correo
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="subscribe-header">
+                      <div className="subscribe-icon-wrap">
+                        <Mail size={20} color="var(--clr-orange)" />
+                      </div>
+                      <div>
+                        <h3 className="subscribe-title font-display">
+                          Alertas Volcánicas
+                        </h3>
+                        <span className="subscribe-subtitle">
+                          Recibe ofertas al instante
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="subscribe-description">
+                      ¿Cansado de llegar tarde a las de 90% de descuento? Únete al radar y recíbelas antes que todos.
+                    </p>
+
+                    <form onSubmit={handleSubscribe} className="subscribe-form">
+                      <div className="subscribe-input-wrapper">
+                        <input
+                          type="email"
+                          placeholder="Tu correo electrónico..."
+                          className={`subscribe-input ${subscribeStatus === "error" ? "error" : ""}`}
+                          value={subscribeEmail}
+                          onChange={(e) => {
+                            setSubscribeEmail(e.target.value);
+                            if (subscribeStatus === "error") {
+                              setSubscribeStatus("idle");
+                              setSubscribeError("");
+                            }
+                          }}
+                          disabled={subscribeStatus === "loading"}
+                        />
+                      </div>
+
+                      {subscribeStatus === "error" && (
+                        <div className="subscribe-error-msg">
+                          {subscribeError}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className={`subscribe-btn ${subscribeStatus === "loading" ? "loading" : ""}`}
+                        disabled={subscribeStatus === "loading"}
+                      >
+                        {subscribeStatus === "loading" ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Registrando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Unirse al club 🌋</span>
+                            <ArrowRight size={16} />
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+
             </aside>
           )}
 
