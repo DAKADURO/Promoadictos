@@ -1797,7 +1797,10 @@ span.price-modal-desktop-only {
 
 /* Responsive modal styling */
 @media (max-width: 768px) {
-  .price-modal-desktop-only {
+  .price-modal-desktop-only,
+  div.price-modal-desktop-only,
+  span.price-modal-desktop-only,
+  .price-modal-left.price-modal-desktop-only {
     display: none !important;
   }
 
@@ -1819,6 +1822,8 @@ span.price-modal-desktop-only {
     margin-bottom: 0.5rem;
     text-align: left;
     padding-right: 2.5rem; /* Reserve space to prevent overlap with the absolute close button */
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .price-modal-mobile-img-wrap {
@@ -1907,30 +1912,82 @@ span.price-modal-desktop-only {
   .price-modal-grid {
     grid-template-columns: 1fr;
     min-height: unset;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .price-modal-right {
-    padding: 1.25rem 1.25rem 1.5rem;
-    gap: 1rem;
+    padding: 1rem 1rem 1.25rem !important; /* Optimizado para mayor espacio lateral */
+    gap: 0.85rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
   }
 
   .price-chart-box {
-    padding: 0.85rem;
+    padding: 0.75rem !important; /* Más espacio lateral para la gráfica */
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 0.6rem !important;
+  }
+
+  .price-chart-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+  }
+
+  .price-chart-title {
+    font-size: 0.72rem !important;
+  }
+
+  .price-chart-hover-val {
+    font-size: 0.8rem !important;
+  }
+
+  .price-chart-svg-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
   }
 
   .price-chart-svg {
-    height: 110px;
+    width: 100% !important;
+    height: auto !important; /* Mantener relación de aspecto matemática perfecta y evitar desbordes */
+    max-width: 100% !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .price-chart-dates {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 5px !important;
+    margin-top: 0.35rem !important;
   }
 
   .price-chart-date-item {
-    font-size: 0.68rem;
-    width: auto;
+    font-size: 0.65rem !important;
+    width: auto !important;
+    flex: 1 !important; /* Distribución matemática equidistante y perfecta */
+    text-align: center !important;
+    padding: 0 !important;
   }
 
   .price-modal-btn {
-    padding: 0.9rem;
-    font-size: 0.95rem;
+    padding: 0.9rem !important;
+    font-size: 0.95rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
+
 
 

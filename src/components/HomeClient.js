@@ -117,8 +117,8 @@ export default function HomeClient({ offers }) {
     const maxP = Math.max(...prices);
     const range = maxP - minP || 1;
 
-    // Coordenadas X fijas equidistantes
-    const xCoords = [25, 112.5, 200, 287.5, 375];
+    // Coordenadas X fijas equidistantes con margen de seguridad horizontal de 30px
+    const xCoords = [30, 115, 200, 285, 370];
 
     return calculatedPoints.map((pt, i) => {
       const x = xCoords[i];
@@ -136,7 +136,7 @@ export default function HomeClient({ offers }) {
   const { linePathD, areaPathD } = useMemo(() => {
     if (!chartData.length) return { linePathD: "", areaPathD: "" };
     const linePathD = chartData.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const areaPathD = `${linePathD} L 375 150 L 25 150 Z`;
+    const areaPathD = `${linePathD} L ${chartData[chartData.length - 1].x} 150 L ${chartData[0].x} 150 Z`;
     return { linePathD, areaPathD };
   }, [chartData]);
 
