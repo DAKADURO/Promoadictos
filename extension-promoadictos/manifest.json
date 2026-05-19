@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "PromoAdictos - 1-Click Importer",
+  "version": "1.0",
+  "description": "Publica ofertas al instante desde Mercado Libre a PromoAdictos.",
+  "permissions": [
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "128": "icon.png"
+  }
+}

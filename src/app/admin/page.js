@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Plus, Trash2, Star,
-  LogOut, Package, TrendingUp, DollarSign, CheckCircle
+  LogOut, Package, TrendingUp, DollarSign, CheckCircle, RefreshCw
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar";
@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [toast, setToast] = useState(null);
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -62,6 +63,25 @@ export default function AdminPage() {
       return;
     }
     await triggerAutoImport(importUrl);
+  };
+
+  const handleSyncPrices = async () => {
+    setSyncing(true);
+    showToast("⚡ Iniciando sincronización de precios...", "success");
+    try {
+      const res = await fetch("/api/offers/sync-prices");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await fetchOffers();
+        showToast(`¡Sincronizado! ${data.updated} de ${data.processed} ofertas actualizadas.`, "success");
+      } else {
+        showToast(data?.error || "Error al sincronizar precios", "error");
+      }
+    } catch (err) {
+      showToast("Error de conexión al sincronizar", "error");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -167,6 +187,12 @@ export default function AdminPage() {
 
   return (
     <>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <Navbar />
       <div style={{ minHeight: "calc(100vh - 72px)", background: "var(--clr-bg)" }}>
 
@@ -197,21 +223,73 @@ export default function AdminPage() {
                 Gestiona tus ofertas — sé mejor que la competencia 🔥
               </p>
             </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              style={{
-                display: "flex", alignItems: "center", gap: "0.5rem",
-                padding: "0.6rem 1.1rem", borderRadius: "0.75rem",
-                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
-                color: "var(--clr-muted)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
-                transition: "all 0.3s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
-            >
-              <LogOut size={16} />
-              Cerrar sesión
-            </button>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <button
+                onClick={handleSyncPrices}
+                disabled={syncing}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.6rem 1.1rem",
+                  borderRadius: "0.75rem",
+                  background: syncing 
+                    ? "rgba(255,255,255,0.02)" 
+                    : "linear-gradient(135deg, rgba(255,92,0,0.1), rgba(255,142,77,0.05))",
+                  border: syncing 
+                    ? "1px solid rgba(255,255,255,0.05)" 
+                    : "1px solid rgba(255,92,0,0.25)",
+                  color: syncing ? "var(--clr-muted)" : "var(--clr-orange-lt)",
+                  cursor: syncing ? "not-allowed" : "pointer",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  transition: "all 0.3s",
+                  boxShadow: syncing ? "none" : "0 4px 12px rgba(255,92,0,0.08)",
+                }}
+                onMouseEnter={e => {
+                  if (!syncing) {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,92,0,0.2), rgba(255,142,77,0.1))";
+                    e.currentTarget.style.borderColor = "var(--clr-orange)";
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 6px 16px rgba(255,92,0,0.15)";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!syncing) {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,92,0,0.1), rgba(255,142,77,0.05))";
+                    e.currentTarget.style.borderColor = "rgba(255,92,0,0.25)";
+                    e.currentTarget.style.color = "var(--clr-orange-lt)";
+                    e.currentTarget.style.transform = "none";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(255,92,0,0.08)";
+                  }
+                }}
+              >
+                <RefreshCw 
+                  size={15} 
+                  style={{ 
+                    animation: syncing ? "spin 1.5s linear infinite" : "none",
+                  }} 
+                />
+                {syncing ? "Sincronizando..." : "⚡ Sincronizar Precios"}
+              </button>
+
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.5rem",
+                  padding: "0.6rem 1.1rem", borderRadius: "0.75rem",
+                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+                  color: "var(--clr-muted)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
+                  transition: "all 0.3s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
+              >
+                <LogOut size={16} />
+                Cerrar sesión
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
