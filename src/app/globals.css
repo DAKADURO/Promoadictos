@@ -2445,5 +2445,190 @@ span.price-modal-desktop-only {
   }
 }
 
+/* ─────────────────────────────────────────
+   PORTAL WEB LAYOUT (2 COLUMNS IN DESKTOP)
+   ───────────────────────────────────────── */
+
+/* Unificar el layout responsivo del portal */
+.portal-layout-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.portal-sidebar {
+  order: 1; /* Por defecto arriba en móviles y tablets */
+}
+
+.portal-main-feed {
+  order: 2; /* Por defecto abajo en móviles y tablets */
+}
+
+/* Encabezados de sección del sidebar */
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.sidebar-section-dot.purple {
+  background: var(--clr-purple);
+  box-shadow: 0 0 10px var(--clr-purple);
+}
+.sidebar-section-dot.orange {
+  background: var(--clr-orange);
+  box-shadow: 0 0 10px var(--clr-orange);
+}
+
+.sidebar-section-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clr-muted);
+}
+
+/* Diseño de 2 Columnas para Escritorio (Pantallas grandes) */
+@media (min-width: 1025px) {
+  .portal-layout-container {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .portal-main-feed {
+    order: unset;
+  }
+
+  .portal-sidebar {
+    order: unset;
+    position: sticky;
+    top: 90px; /* Se queda fijo y flota al hacer scroll */
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: 0.75rem; /* Margen para no tapar contenido */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 92, 0, 0.15) transparent;
+  }
+
+  /* Personalización del scrollbar interno de la barra lateral */
+  .portal-sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .portal-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .portal-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 92, 0, 0.15);
+    border-radius: 4px;
+  }
+  .portal-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--clr-orange);
+  }
+
+  /* Compactar Dashboard de Ahorro en Sidebar */
+  .portal-sidebar .savings-dashboard {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .portal-sidebar .savings-card {
+    padding: 1.1rem 1.25rem;
+    gap: 1rem;
+    border-radius: 14px;
+  }
+
+  .portal-sidebar .savings-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  .portal-sidebar .savings-card-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .portal-sidebar .savings-card-value {
+    font-size: 1.25rem;
+  }
+
+  .portal-sidebar .savings-card-label {
+    font-size: 0.72rem;
+  }
+
+  .portal-sidebar .savings-card-desc {
+    font-size: 0.68rem;
+  }
+
+  /* Compactar Ofertas Calientes en Sidebar */
+  .portal-sidebar .hot-deals-grid {
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+  }
+
+  .portal-sidebar .hot-deal-card {
+    padding: 1.1rem;
+    border-radius: 14px;
+  }
+
+  .portal-sidebar .hot-deal-badge-row {
+    margin-bottom: 0.85rem;
+  }
+
+  .portal-sidebar .hot-deal-content {
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .portal-sidebar .hot-deal-img-wrap {
+    width: 75px;
+    height: 75px;
+    border-radius: 10px;
+  }
+
+  .portal-sidebar .hot-deal-title {
+    font-size: 0.82rem;
+    line-height: 1.35;
+    margin-bottom: 0.35rem;
+    height: 2.7em;
+  }
+
+  .portal-sidebar .hot-deal-prices {
+    gap: 0.35rem;
+  }
+
+  .portal-sidebar .hot-deal-price {
+    font-size: 1.05rem;
+  }
+
+  .portal-sidebar .hot-deal-original {
+    font-size: 0.72rem;
+  }
+
+  .portal-sidebar .thermometer-container {
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .portal-sidebar .thermometer-info {
+    font-size: 0.68rem;
+  }
+
+  .portal-sidebar .hot-deal-btn {
+    padding: 0.55rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+}
+
 
 
