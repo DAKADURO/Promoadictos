@@ -6,10 +6,33 @@ export const metadata = {
   description:
     "Descubre descuentos reales en Mercado Libre, Amazon y más. Seleccionamos manualmente las mejores ofertas del día. Sin spam, solo gangas.",
   keywords: "ofertas, descuentos, mercado libre, amazon, promociones, méxico, gangas",
+  icons: {
+    icon: [
+      { url: "/logo.png", type: "image/png" },
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "PromoAdictos | Ofertas y Descuentos en Tiempo Real",
     description: "Las mejores ofertas verificadas de México. Actualizado diariamente.",
     type: "website",
+    url: "https://promoadictos.com",
+    siteName: "PromoAdictos",
+    images: [
+      {
+        url: "https://promoadictos.com/logo.png",
+        width: 512,
+        height: 512,
+        alt: "PromoAdictos Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "PromoAdictos | Ofertas y Descuentos en Tiempo Real",
+    description: "Las mejores ofertas verificadas de México. Actualizado diariamente.",
+    images: ["https://promoadictos.com/logo.png"],
   },
 };
 
