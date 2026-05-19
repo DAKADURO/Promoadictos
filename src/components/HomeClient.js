@@ -566,6 +566,11 @@ export default function HomeClient({ offers }) {
                         style={{
                           left: `${(chartData[activeDotIndex].x / 400) * 100}%`,
                           top: `${(chartData[activeDotIndex].y / 150) * 100}%`,
+                          transform: activeDotIndex === 4 
+                            ? 'translate(-85%, -100%) translateY(-12px)' 
+                            : activeDotIndex === 0 
+                            ? 'translate(-15%, -100%) translateY(-12px)' 
+                            : 'translate(-50%, -100%) translateY(-12px)'
                         }}
                       >
                         <span className="price-chart-tooltip-price">
