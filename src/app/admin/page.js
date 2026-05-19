@@ -144,6 +144,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setFormData(EMPTY_FORM);
+        setImportUrl("");
         fetchOffers();
         showToast("¡Oferta publicada exitosamente!");
       } else {
