@@ -61,6 +61,18 @@ body {
 ───────────────────────────────────────── */
 .container { max-width: 1320px; margin: 0 auto; padding: 0 1.75rem; }
 
+@media (min-width: 1200px) {
+  .container { max-width: 1420px; }
+}
+
+@media (min-width: 1400px) {
+  .container { max-width: 1580px; }
+}
+
+@media (min-width: 1600px) {
+  .container { max-width: 1720px; }
+}
+
 /* Safe area insets for iPhone notch / dynamic island / home bar */
 @supports (padding: max(0px)) {
   .glass-nav .nav-inner {
@@ -265,6 +277,18 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 3.5rem 1.5rem 2rem;
+}
+
+@media (min-width: 1200px) {
+  .hero-container { max-width: 1300px; }
+}
+
+@media (min-width: 1400px) {
+  .hero-container { max-width: 1450px; }
+}
+
+@media (min-width: 1600px) {
+  .hero-container { max-width: 1600px; }
 }
 
 @media (max-width: 968px) {
@@ -626,7 +650,7 @@ body {
    OFFER GRID
 ───────────────────────────────────────── */
 .offers-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.75rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.75rem;
 }
 
 /* ─────────────────────────────────────────
