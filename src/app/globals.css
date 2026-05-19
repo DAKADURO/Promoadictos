@@ -1775,10 +1775,107 @@ body {
   cursor: pointer;
 }
 
+.price-modal-drag-handle {
+  display: none;
+}
+
+.price-modal-mobile-header {
+  display: none;
+}
+
+.price-modal-desktop-only {
+  display: flex;
+}
+
+div.price-modal-desktop-only {
+  display: flex;
+}
+
+span.price-modal-desktop-only {
+  display: inline;
+}
+
 /* Responsive modal styling */
 @media (max-width: 768px) {
+  .price-modal-desktop-only {
+    display: none !important;
+  }
+
+  .price-modal-drag-handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin: 0.75rem auto 0.25rem;
+  }
+
+  .price-modal-mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .price-modal-mobile-img-wrap {
+    width: 72px;
+    height: 72px;
+    background: #fff;
+    border-radius: var(--radius-xs);
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+  }
+
+  .price-modal-mobile-img-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .price-modal-mobile-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, var(--clr-orange) 0%, var(--clr-orange-lt) 100%);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.62rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(255, 92, 0, 0.4);
+  }
+
+  .price-modal-mobile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  
+  .price-modal-mobile-info .price-modal-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  
+  .price-modal-mobile-info .price-modal-cat {
+    font-size: 0.65rem;
+  }
+
   .price-modal-overlay {
-    padding: 0.75rem;
+    padding: 0; /* Pantalla completa o bottom sheet perfecto en móvil */
     align-items: flex-end; /* Abre desde abajo tipo bottom sheet */
   }
 
@@ -1787,6 +1884,7 @@ body {
     max-height: 92vh;
     overflow-y: auto;
     animation: slideUpMobile 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem));
   }
 
   @keyframes slideUpMobile {
@@ -1796,39 +1894,30 @@ body {
 
   .price-modal-grid {
     grid-template-columns: 1fr;
-  }
-
-  .price-modal-left {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 2rem 1.5rem 1.5rem;
-  }
-
-  .price-modal-img-wrap {
-    width: 150px;
-    height: 150px;
+    min-height: unset;
   }
 
   .price-modal-right {
-    padding: 1.5rem;
-    gap: 1.25rem;
+    padding: 1.25rem 1.25rem 1.5rem;
+    gap: 1rem;
   }
 
-  .price-modal-title {
-    font-size: 1.1rem;
-  }
-
-  .price-modal-price {
-    font-size: 1.75rem;
+  .price-chart-box {
+    padding: 0.85rem;
   }
 
   .price-chart-svg {
-    height: 120px;
+    height: 110px;
   }
 
   .price-chart-date-item {
     font-size: 0.68rem;
     width: auto;
+  }
+
+  .price-modal-btn {
+    padding: 0.9rem;
+    font-size: 0.95rem;
   }
 }
 

@@ -16,12 +16,48 @@ export default function HomeClient({ offers }) {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [activeDotIndex, setActiveDotIndex] = useState(4); // Por defecto Hoy (último punto)
 
-  // Restablecer el punto activo al abrir un nuevo producto
+  // Gestos táctiles de arrastre para móviles (Bottom Sheet)
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchCurrent, setTouchCurrent] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Restablecer el punto activo y gestos al abrir un nuevo producto
   useEffect(() => {
     if (selectedOffer) {
       setActiveDotIndex(4);
+      setTouchStart(0);
+      setTouchCurrent(0);
+      setIsDragging(false);
     }
   }, [selectedOffer]);
+
+  const handleTouchStart = (e) => {
+    // Solo permitir el arrastre desde la barra de arrastre o la cabecera móvil
+    if (e.target.closest(".price-modal-drag-handle") || e.target.closest(".price-modal-mobile-header")) {
+      setTouchStart(e.touches[0].clientY);
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStart;
+    // Solo arrastrar hacia abajo (valores positivos)
+    if (deltaY > 0) {
+      setTouchCurrent(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    // Si se arrastró más de 80px, cerrar el modal
+    if (touchCurrent > 80) {
+      setSelectedOffer(null);
+    }
+    setTouchCurrent(0);
+  };
 
   // Tecla Escape y control de scroll en el body
   useEffect(() => {
@@ -389,11 +425,27 @@ export default function HomeClient({ offers }) {
         <div 
           className="price-modal-overlay"
           onClick={() => setSelectedOffer(null)}
+          style={{
+            backgroundColor: touchCurrent > 0 ? `rgba(3, 5, 10, ${Math.max(0.2, 0.8 - (touchCurrent / 200) * 0.6)})` : undefined,
+            backdropFilter: touchCurrent > 0 ? `blur(${Math.max(2, 12 - (touchCurrent / 200) * 10)}px)` : undefined,
+            WebkitBackdropFilter: touchCurrent > 0 ? `blur(${Math.max(2, 12 - (touchCurrent / 200) * 10)}px)` : undefined,
+            transition: isDragging ? "none" : "background-color 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s"
+          }}
         >
           <div 
             className="price-modal-card"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              transform: touchCurrent > 0 ? `translateY(${touchCurrent}px)` : undefined,
+              transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)"
+            }}
           >
+            {/* Barra superior de arrastre / Handle para móviles */}
+            <div className="price-modal-drag-handle" />
+
             {/* Botón de cerrar */}
             <button 
               className="price-modal-close"
@@ -404,8 +456,8 @@ export default function HomeClient({ offers }) {
             </button>
 
             <div className="price-modal-grid">
-              {/* Lado izquierdo: Imagen y descuento */}
-              <div className="price-modal-left">
+              {/* Lado izquierdo: Imagen y descuento (Desktop únicamente) */}
+              <div className="price-modal-left price-modal-desktop-only">
                 <div className="price-modal-img-wrap">
                   <img 
                     src={selectedOffer.imageUrl || "/logo.png"} 
@@ -444,12 +496,43 @@ export default function HomeClient({ offers }) {
 
               {/* Lado derecho: Detalles, gráfica SVG y CTA */}
               <div className="price-modal-right">
-                <div className="price-modal-header">
+                {/* Cabecera Compacta Horizontal para Móviles */}
+                <div className="price-modal-mobile-header">
+                  <div className="price-modal-mobile-img-wrap">
+                    <img 
+                      src={selectedOffer.imageUrl || "/logo.png"} 
+                      alt={selectedOffer.title}
+                      onError={(e) => { e.target.src = "/logo.png"; }}
+                    />
+                    {selectedOffer.discount && (
+                      <span className="price-modal-mobile-badge">
+                        -{selectedOffer.discount}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="price-modal-mobile-info">
+                    <span className="price-modal-cat">{selectedOffer.category}</span>
+                    <h2 className="price-modal-title">{selectedOffer.title}</h2>
+                    <div className="price-modal-pricing" style={{ marginTop: "0.15rem", display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                      <span className="price-modal-price" style={{ fontSize: "1.35rem", fontWeight: 900 }}>
+                        ${parseFloat(selectedOffer.price).toLocaleString("es-MX")}
+                      </span>
+                      {selectedOffer.originalPrice && (
+                        <span className="price-modal-original" style={{ fontSize: "0.85rem", color: "var(--clr-muted)", textDecoration: "line-through" }}>
+                          ${parseFloat(selectedOffer.originalPrice).toLocaleString("es-MX")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cabecera Desktop (Oculta en móviles) */}
+                <div className="price-modal-header price-modal-desktop-only">
                   <span className="price-modal-cat">{selectedOffer.category}</span>
                   <h2 className="price-modal-title">{selectedOffer.title}</h2>
                 </div>
 
-                <div className="price-modal-pricing">
+                <div className="price-modal-pricing price-modal-desktop-only">
                   <span className="price-modal-price">
                     ${parseFloat(selectedOffer.price).toLocaleString("es-MX")}
                   </span>
@@ -528,6 +611,22 @@ export default function HomeClient({ offers }) {
                           onClick={() => setActiveDotIndex(idx)}
                         />
                       ))}
+
+                      {/* Círculos invisibles gigantes para optimización táctil en móviles */}
+                      {chartData.map((pt, idx) => (
+                        <circle
+                          key={`touch-${idx}`}
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={22}
+                          fill="transparent"
+                          stroke="none"
+                          style={{ cursor: "pointer", pointerEvents: "all" }}
+                          onMouseEnter={() => setActiveDotIndex(idx)}
+                          onClick={() => setActiveDotIndex(idx)}
+                          onTouchStart={() => setActiveDotIndex(idx)}
+                        />
+                      ))}
                     </svg>
                   </div>
 
@@ -539,6 +638,7 @@ export default function HomeClient({ offers }) {
                         className={`price-chart-date-item${activeDotIndex === idx ? " active" : ""}`}
                         onMouseEnter={() => setActiveDotIndex(idx)}
                         onClick={() => setActiveDotIndex(idx)}
+                        onTouchStart={() => setActiveDotIndex(idx)}
                         style={{
                           background: "none",
                           border: "none",
