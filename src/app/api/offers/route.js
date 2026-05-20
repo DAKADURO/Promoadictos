@@ -18,12 +18,69 @@ export async function GET() {
   }
 }
 
+function extractProductId(url) {
+  if (!url) return null;
+  const lowerUrl = url.toLowerCase();
+  
+  // Mercado Libre item ID (e.g., MLM-1234567890 or MLM1234567890)
+  const mlMatch = lowerUrl.match(/mlm-?[0-9]+/);
+  if (mlMatch) {
+    return mlMatch[0].replace("-", ""); // Normalize to MLM1234567890
+  }
+  
+  // Amazon ASIN (10-character alphanumeric, e.g. B0XXXXXXXX)
+  const amzMatch = lowerUrl.match(/\/dp\/([a-z0-9]{10})/i) || lowerUrl.match(/\/gp\/product\/([a-z0-9]{10})/i);
+  if (amzMatch) {
+    return amzMatch[1].toUpperCase();
+  }
+  
+  return lowerUrl.trim();
+}
+
 export async function POST(req) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = await req.json();
+
+    if (!data.title || !data.affiliateUrl || data.price === undefined || data.price === null) {
+      return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
+    }
+
+    const titleLower = data.title.toLowerCase().trim();
+    const urlProductId = extractProductId(data.affiliateUrl);
+
+    // Obtener las ofertas existentes para checar duplicados
+    const existingOffers = await prisma.offer.findMany({
+      select: {
+        id: true,
+        title: true,
+        affiliateUrl: true,
+      }
+    });
+
+    const isDuplicate = existingOffers.some(o => {
+      // Comparar títulos ignorando mayúsculas y espacios extremos
+      if (o.title.toLowerCase().trim() === titleLower) return true;
+      
+      // Comparar identificadores extraídos de las URLs
+      const existingProductId = extractProductId(o.affiliateUrl);
+      if (urlProductId && existingProductId && urlProductId === existingProductId) return true;
+      
+      // Fallback a enlace exacto
+      if (o.affiliateUrl.toLowerCase().trim() === data.affiliateUrl.toLowerCase().trim()) return true;
+      
+      return false;
+    });
+
+    if (isDuplicate) {
+      return NextResponse.json({ 
+        error: "La oferta ya existe", 
+        details: "Ya existe un producto publicado con el mismo título o enlace." 
+      }, { status: 409 });
+    }
+
     const offer = await prisma.offer.create({
       data: {
         title: data.title,
@@ -39,7 +96,8 @@ export async function POST(req) {
     revalidatePath("/");
     return NextResponse.json(offer);
   } catch (error) {
-    return NextResponse.json({ error: "Error creating offer" }, { status: 500 });
+    console.error("Error creating offer:", error);
+    return NextResponse.json({ error: "Error al crear la oferta", details: error.message }, { status: 500 });
   }
 }
 

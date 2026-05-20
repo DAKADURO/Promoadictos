@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Plus, Trash2, Star,
   LogOut, Package, TrendingUp, DollarSign, CheckCircle, RefreshCw,
@@ -15,6 +15,25 @@ const EMPTY_FORM = {
   title: "", price: "", originalPrice: "", discount: "",
   imageUrl: "", affiliateUrl: "", category: "General", isFeatured: false,
 };
+
+function extractProductId(url) {
+  if (!url) return null;
+  const lowerUrl = url.toLowerCase();
+  
+  // Mercado Libre item ID (e.g., MLM-1234567890 or MLM1234567890)
+  const mlMatch = lowerUrl.match(/mlm-?[0-9]+/);
+  if (mlMatch) {
+    return mlMatch[0].replace("-", ""); // Normalize to MLM1234567890
+  }
+  
+  // Amazon ASIN (10-character alphanumeric, e.g. B0XXXXXXXX)
+  const amzMatch = lowerUrl.match(/\/dp\/([a-z0-9]{10})/i) || lowerUrl.match(/\/gp\/product\/([a-z0-9]{10})/i);
+  if (amzMatch) {
+    return amzMatch[1].toUpperCase();
+  }
+  
+  return lowerUrl.trim();
+}
 
 export default function AdminPage() {
   const [offers, setOffers] = useState([]);
@@ -31,6 +50,26 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("Todas");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const isTitleDuplicate = useMemo(() => {
+    if (!formData.title) return false;
+    const titleLower = formData.title.toLowerCase().trim();
+    return offers.some(o => {
+      if (editingOfferId && o.id === editingOfferId) return false;
+      return o.title.toLowerCase().trim() === titleLower;
+    });
+  }, [formData.title, offers, editingOfferId]);
+
+  const isUrlDuplicate = useMemo(() => {
+    if (!formData.affiliateUrl) return false;
+    const urlProductId = extractProductId(formData.affiliateUrl);
+    return offers.some(o => {
+      if (editingOfferId && o.id === editingOfferId) return false;
+      const existingProductId = extractProductId(o.affiliateUrl);
+      if (urlProductId && existingProductId && urlProductId === existingProductId) return true;
+      return o.affiliateUrl.toLowerCase().trim() === formData.affiliateUrl.toLowerCase().trim();
+    });
+  }, [formData.affiliateUrl, offers, editingOfferId]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -201,7 +240,9 @@ export default function AdminPage() {
         fetchOffers();
         showToast(isEditing ? "¡Oferta actualizada exitosamente!" : "¡Oferta publicada exitosamente!");
       } else {
-        showToast(isEditing ? "Error al actualizar la oferta" : "Error al guardar la oferta", "error");
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.details || errorData.error || (isEditing ? "Error al actualizar la oferta" : "Error al guardar la oferta");
+        showToast(errorMsg, "error");
       }
     } catch { showToast("Error de conexión", "error"); }
     finally { setSubmitting(false); }
@@ -694,6 +735,11 @@ export default function AdminPage() {
                   <label style={labelStyle}>Título del producto</label>
                   <input name="title" value={formData.title} onChange={handleChange}
                     placeholder="Ej: iPhone 15 Pro Max 256GB" required style={inputStyle} />
+                  {isTitleDuplicate && (
+                    <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                      ⚠️ Ya existe una oferta activa con este título.
+                    </span>
+                  )}
                 </div>
 
                 {/* Price row con adornos en línea */}
@@ -754,6 +800,11 @@ export default function AdminPage() {
                   <label style={labelStyle}>Link de afiliado</label>
                   <input name="affiliateUrl" type="url" value={formData.affiliateUrl} onChange={handleChange}
                     placeholder="https://mercadolibre.com.mx/..." required style={inputStyle} />
+                  {isUrlDuplicate && (
+                    <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                      ⚠️ Ya existe una oferta activa con este mismo enlace.
+                    </span>
+                  )}
                 </div>
 
                 {/* Featured toggle */}
@@ -769,27 +820,40 @@ export default function AdminPage() {
 
                 {/* Botones de acción (dinámicos para creación y edición) */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
-                  <button type="submit" disabled={submitting} style={{
-                    background: submitting 
-                      ? "var(--clr-dim)" 
-                      : editingOfferId
-                        ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
-                        : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
-                    color: "#fff", border: "none", borderRadius: "0.75rem",
-                    padding: "0.9rem", fontWeight: 700, fontSize: "0.95rem",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    transition: "all 0.3s",
-                    boxShadow: submitting 
-                      ? "none" 
-                      : editingOfferId 
-                        ? "0 4px 16px rgba(124,58,237,0.3)" 
-                        : "0 4px 16px rgba(255,92,0,0.3)",
-                  }}>
+                  <button 
+                    type="submit" 
+                    disabled={submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))} 
+                    style={{
+                      background: submitting 
+                        ? "var(--clr-dim)" 
+                        : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
+                          ? "rgba(255,255,255,0.05)"
+                          : editingOfferId
+                            ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                            : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+                      color: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "var(--clr-muted)" : "#fff",
+                      border: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "1px solid var(--clr-border)" : "none",
+                      borderRadius: "0.75rem",
+                      padding: "0.9rem", 
+                      fontWeight: 700, 
+                      fontSize: "0.95rem",
+                      cursor: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate)) ? "not-allowed" : "pointer",
+                      transition: "all 0.3s",
+                      opacity: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? 0.6 : 1,
+                      boxShadow: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))
+                        ? "none" 
+                        : editingOfferId 
+                          ? "0 4px 16px rgba(124,58,237,0.3)" 
+                          : "0 4px 16px rgba(255,92,0,0.3)",
+                    }}
+                  >
                     {submitting 
                       ? "Procesando..." 
-                      : editingOfferId 
-                        ? "✦ Guardar cambios" 
-                        : "✦ Publicar oferta"}
+                      : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
+                        ? "⚠️ Corregir duplicados"
+                        : editingOfferId 
+                          ? "✦ Guardar cambios" 
+                          : "✦ Publicar oferta"}
                   </button>
 
                   {editingOfferId && (
