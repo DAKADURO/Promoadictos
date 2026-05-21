@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Lock, Search, CreditCard } from "lucide-react";
+import { Lock, Search, CreditCard, Tag } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
 export default function Navbar({ onSearch, offers = [] }) {
@@ -146,6 +146,10 @@ export default function Navbar({ onSearch, offers = [] }) {
 
         {/* Actions */}
         <div className="nav-actions">
+          <Link href="/cupones" className="nav-cupones-btn" id="nav-cupones-btn">
+            <Tag size={16} />
+            <span>Cupones</span>
+          </Link>
           <Link href="/terminales" className="nav-terminal-btn" id="nav-terminales-btn">
             <CreditCard size={16} />
             <span>Terminales Point</span>

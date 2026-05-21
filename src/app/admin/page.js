@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Plus, Trash2, Star,
   LogOut, Package, TrendingUp, DollarSign, CheckCircle, RefreshCw,
-  Edit3, Search, X, ChevronLeft, ChevronRight
+  Edit3, Search, X, ChevronLeft, ChevronRight, Ticket, Clock, Calendar
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar";
@@ -14,6 +14,12 @@ const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio"
 const EMPTY_FORM = {
   title: "", price: "", originalPrice: "", discount: "",
   imageUrl: "", affiliateUrl: "", category: "General", isFeatured: false,
+};
+
+const EMPTY_COUPON_FORM = {
+  title: "", code: "", discount: "", description: "",
+  store: "Mercado Libre", link: "", category: "General",
+  expiryDate: "", isActive: true, isFeatured: false,
 };
 
 function extractProductId(url) {
@@ -36,6 +42,8 @@ function extractProductId(url) {
 }
 
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState("offers");
+
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -50,6 +58,17 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("Todas");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Estados para Cupones
+  const [coupons, setCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(true);
+  const [couponFormData, setCouponFormData] = useState(EMPTY_COUPON_FORM);
+  const [editingCouponId, setEditingCouponId] = useState(null);
+  const [submittingCoupon, setSubmittingCoupon] = useState(false);
+  const [couponSearchQuery, setCouponSearchQuery] = useState("");
+  const [couponSelectedStoreFilter, setCouponSelectedStoreFilter] = useState("Todas");
+  const [couponSelectedCategoryFilter, setCouponSelectedCategoryFilter] = useState("Todas");
+  const [couponCurrentPage, setCouponCurrentPage] = useState(1);
 
   const isTitleDuplicate = useMemo(() => {
     if (!formData.title) return false;
@@ -70,6 +89,16 @@ export default function AdminPage() {
       return o.affiliateUrl.toLowerCase().trim() === formData.affiliateUrl.toLowerCase().trim();
     });
   }, [formData.affiliateUrl, offers, editingOfferId]);
+
+  const isCouponDuplicate = useMemo(() => {
+    if (!couponFormData.code || !couponFormData.store) return false;
+    const codeLower = couponFormData.code.toLowerCase().trim();
+    const storeLower = couponFormData.store.toLowerCase().trim();
+    return coupons.some(c => {
+      if (editingCouponId && c.id === editingCouponId) return false;
+      return c.code.toLowerCase().trim() === codeLower && c.store.toLowerCase().trim() === storeLower;
+    });
+  }, [couponFormData.code, couponFormData.store, coupons, editingCouponId]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -132,6 +161,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchOffers();
+    fetchCoupons();
     // Auto import if URL query param exists
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -179,6 +209,39 @@ export default function AdminPage() {
   const startIndex = (currentPage - 1) * OFFERS_PER_PAGE;
   const paginatedOffers = filteredOffers.slice(startIndex, startIndex + OFFERS_PER_PAGE);
 
+  // Lógica de búsqueda, filtrado y paginación en tiempo real (Cupones)
+  const filteredCoupons = coupons.filter(c => {
+    const query = couponSearchQuery.toLowerCase();
+    const matchesSearch = c.title.toLowerCase().includes(query) || 
+                          c.code.toLowerCase().includes(query) ||
+                          (c.description && c.description.toLowerCase().includes(query));
+    const matchesStore = couponSelectedStoreFilter === "Todas" || c.store === couponSelectedStoreFilter;
+    const matchesCategory = couponSelectedCategoryFilter === "Todas" || c.category === couponSelectedCategoryFilter;
+    return matchesSearch && matchesStore && matchesCategory;
+  });
+
+  const COUPONS_PER_PAGE = 6;
+  const couponTotalPages = Math.max(1, Math.ceil(filteredCoupons.length / COUPONS_PER_PAGE));
+
+  useEffect(() => {
+    if (couponCurrentPage > couponTotalPages) {
+      setCouponCurrentPage(1);
+    }
+  }, [couponSearchQuery, couponSelectedStoreFilter, couponSelectedCategoryFilter, couponTotalPages, couponCurrentPage]);
+
+  const couponStores = useMemo(() => {
+    const list = coupons.map(c => c.store);
+    return ["Todas", ...Array.from(new Set(list))];
+  }, [coupons]);
+
+  const couponCategories = useMemo(() => {
+    const list = coupons.map(c => c.category);
+    return ["Todas", ...Array.from(new Set(list))];
+  }, [coupons]);
+
+  const couponStartIndex = (couponCurrentPage - 1) * COUPONS_PER_PAGE;
+  const paginatedCoupons = filteredCoupons.slice(couponStartIndex, couponStartIndex + COUPONS_PER_PAGE);
+
   // Controladores para el flujo de edición rápida
   const handleEditClick = (offer) => {
     setEditingOfferId(offer.id);
@@ -210,6 +273,16 @@ export default function AdminPage() {
       setOffers(Array.isArray(data) ? data : []);
     } catch { setOffers([]); }
     finally { setLoading(false); }
+  };
+
+  const fetchCoupons = async () => {
+    setCouponsLoading(true);
+    try {
+      const res = await fetch("/api/coupons");
+      const data = await res.json();
+      setCoupons(Array.isArray(data) ? data : []);
+    } catch { setCoupons([]); }
+    finally { setCouponsLoading(false); }
   };
 
   const handleChange = (e) => {
@@ -275,10 +348,101 @@ export default function AdminPage() {
     }
   };
 
+  const handleCouponSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingCoupon(true);
+    try {
+      const isEditing = !!editingCouponId;
+      const res = await fetch("/api/coupons", {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingCouponId || undefined,
+          ...couponFormData,
+          expiryDate: couponFormData.expiryDate || null,
+        }),
+      });
+      if (res.ok) {
+        setCouponFormData(EMPTY_COUPON_FORM);
+        setEditingCouponId(null);
+        fetchCoupons();
+        showToast(isEditing ? "¡Cupón actualizado exitosamente!" : "¡Cupón publicado exitosamente!");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.details || errorData.error || (isEditing ? "Error al actualizar el cupón" : "Error al guardar el cupón");
+        showToast(errorMsg, "error");
+      }
+    } catch { showToast("Error de conexión", "error"); }
+    finally { setSubmittingCoupon(false); }
+  };
+
+  const deleteCoupon = async (id) => {
+    if (!confirm("¿Eliminar este cupón?")) return;
+    try {
+      await fetch(`/api/coupons?id=${id}`, { method: "DELETE" });
+      fetchCoupons();
+      showToast("Cupón eliminado");
+    } catch { showToast("Error al eliminar", "error"); }
+  };
+
+  const updateCoupon = async (id, updatedFields) => {
+    try {
+      const res = await fetch("/api/coupons", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updatedFields }),
+      });
+      if (res.ok) {
+        setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...updatedFields } : c));
+        showToast("¡Cupón actualizado!");
+      } else {
+        showToast("Error al actualizar el cupón", "error");
+      }
+    } catch {
+      showToast("Error de conexión al actualizar", "error");
+    }
+  };
+
+  const handleCouponEditClick = (coupon) => {
+    setEditingCouponId(coupon.id);
+    setCouponFormData({
+      title: coupon.title || "",
+      code: coupon.code || "",
+      discount: coupon.discount || "",
+      description: coupon.description || "",
+      store: coupon.store || "Mercado Libre",
+      link: coupon.link || "",
+      category: coupon.category || "General",
+      expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().substring(0, 10) : "",
+      isActive: coupon.isActive !== false,
+      isFeatured: !!coupon.isFeatured,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelCouponEdit = () => {
+    setEditingCouponId(null);
+    setCouponFormData(EMPTY_COUPON_FORM);
+  };
+
   const totalValue = offers.reduce((acc, o) => acc + o.price, 0);
   const avgDiscount = offers.length
     ? Math.round(offers.filter(o => o.discount).reduce((a, o) => a + (o.discount || 0), 0) / offers.length)
     : 0;
+
+  const activeCouponsCount = coupons.filter(c => c.isActive !== false).length;
+  const uniqueStoresCount = new Set(coupons.map(c => c.store)).size;
+  const featuredCouponsCount = coupons.filter(c => c.isFeatured).length;
+
+  const stats = activeTab === "offers" ? [
+    { label: "Ofertas activas", value: offers.length, icon: <Package size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-orange)" },
+    { label: "Valor total", value: `$${totalValue.toLocaleString("es-MX")}`, icon: <DollarSign size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-purple)" },
+    { label: "Descuento promedio", value: `${avgDiscount}%`, icon: <TrendingUp size={20} style={{ position: "relative", zIndex: 1 }} />, color: "#10B981" },
+  ] : [
+    { label: "Cupones activos", value: activeCouponsCount, icon: <Ticket size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-orange)" },
+    { label: "Tiendas únicas", value: uniqueStoresCount, icon: <Package size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-purple)" },
+    { label: "Destacados", value: featuredCouponsCount, icon: <Star size={20} style={{ position: "relative", zIndex: 1 }} />, color: "#10B981" },
+  ];
 
   return (
     <>
@@ -286,6 +450,32 @@ export default function AdminPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        /* Store colored tags for coupons */
+        .coupon-store-tag {
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .coupon-store-tag.mercadolibre {
+          background: rgba(255, 230, 0, 0.15);
+          color: #ffe600;
+        }
+        .coupon-store-tag.amazon {
+          background: rgba(255, 153, 0, 0.15);
+          color: #ff9900;
+        }
+        .coupon-store-tag.aliexpress {
+          background: rgba(230, 46, 4, 0.15);
+          color: #e62e04;
+        }
+        .coupon-store-tag.general {
+          background: rgba(124, 58, 237, 0.15);
+          color: #a78bfa;
         }
 
         /* Efecto de borde de energía para el módulo de scraping inteligente */
@@ -637,11 +827,7 @@ export default function AdminPage() {
 
           {/* Stats */}
           <div className="admin-stats-grid">
-            {[
-              { label: "Ofertas activas", value: offers.length, icon: <Package size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-orange)" },
-              { label: "Valor total", value: `$${totalValue.toLocaleString("es-MX")}`, icon: <DollarSign size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-purple)" },
-              { label: "Descuento promedio", value: `${avgDiscount}%`, icon: <TrendingUp size={20} style={{ position: "relative", zIndex: 1 }} />, color: "#10B981" },
-            ].map((s, i) => (
+            {stats.map((s, i) => (
               <div key={i} className="admin-glass-card">
                 {/* Halo de luz de color radial degradado */}
                 <div className="radial-glow" style={{ background: s.color }} />
@@ -667,500 +853,1079 @@ export default function AdminPage() {
             ))}
           </div>
 
+          {/* Sliding Tab Switcher */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            background: "rgba(14, 19, 38, 0.4)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.04)",
+            borderRadius: "1rem",
+            padding: "0.4rem",
+            marginBottom: "2rem",
+            width: "fit-content",
+            gap: "0.5rem"
+          }}>
+            <button
+              onClick={() => setActiveTab("offers")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.6rem",
+                padding: "0.6rem 1.5rem",
+                borderRadius: "0.75rem",
+                border: "none",
+                background: activeTab === "offers" ? "var(--clr-orange)" : "transparent",
+                color: activeTab === "offers" ? "#fff" : "var(--clr-muted)",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: activeTab === "offers" ? "0 4px 12px rgba(255,92,0,0.25)" : "none"
+              }}
+            >
+              <Package size={16} />
+              Ofertas ({offers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("coupons")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.6rem",
+                padding: "0.6rem 1.5rem",
+                borderRadius: "0.75rem",
+                border: "none",
+                background: activeTab === "coupons" ? "var(--clr-orange)" : "transparent",
+                color: activeTab === "coupons" ? "#fff" : "var(--clr-muted)",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: activeTab === "coupons" ? "0 4px 12px rgba(255,92,0,0.25)" : "none"
+              }}
+            >
+              <Ticket size={16} />
+              Cupones ({coupons.length})
+            </button>
+          </div>
+
           {/* Main grid */}
-          <div className="admin-grid-layout">
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} style={{
-              background: "rgba(14, 19, 38, 0.4)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.04)",
-              borderRadius: "1.25rem", padding: "1.25rem",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-              transition: "all 0.3s ease",
-            }}>
-              <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
-                <span style={{ 
-                  width: "28px", height: "28px", 
-                  background: editingOfferId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
-                  borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: editingOfferId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
-                  transition: "all 0.3s ease"
-                }}>
-                  {editingOfferId ? <Edit3 size={14} color="#fff" /> : <Plus size={14} color="#fff" />}
-                </span>
-                {editingOfferId ? "Editar oferta" : "Nueva oferta"}
-              </h2>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                {/* Autocompletar inteligente con Energy Border animado */}
-                {!editingOfferId && (
-                  <div className={`energy-border-container ${importing ? "active" : ""}`} style={{ padding: "0.85rem", marginBottom: "0.25rem" }}>
-                    <label style={{ ...labelStyle, color: "var(--clr-orange)", marginBottom: "0.35rem", display: "block" }}>⚡ Autocompletar con Link</label>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <input
-                        type="url"
-                        value={importUrl}
-                        onChange={(e) => setImportUrl(e.target.value)}
-                        placeholder="Pega tu link meli.la..."
-                        style={{ ...inputStyle, background: "rgba(0,0,0,0.15)", flex: 1, border: "1px solid rgba(255,255,255,0.05)" }}
-                      />
-                      <button
-                        type="button"
-                        disabled={importing}
-                        onClick={handleImport}
-                        style={{
-                          background: importing ? "var(--clr-dim)" : "var(--clr-orange)",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "0.6rem",
-                          padding: "0 1.2rem",
-                          fontWeight: 700,
-                          fontSize: "0.85rem",
-                          cursor: importing ? "not-allowed" : "pointer",
-                          transition: "all 0.3s",
-                          whiteSpace: "nowrap",
-                          boxShadow: importing ? "none" : "0 2px 8px rgba(255,92,0,0.2)",
-                        }}
-                      >
-                        {importing ? "..." : "✦ Importar"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Title */}
-                <div>
-                  <label style={labelStyle}>Título del producto</label>
-                  <input name="title" value={formData.title} onChange={handleChange}
-                    placeholder="Ej: iPhone 15 Pro Max 256GB" required style={inputStyle} />
-                  {isTitleDuplicate && (
-                    <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
-                      ⚠️ Ya existe una oferta activa con este título.
-                    </span>
-                  )}
-                </div>
-
-                {/* Price row con adornos en línea */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                  <div>
-                    <label style={labelStyle}>Precio ($)</label>
-                    <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>$</span>
-                      <input name="price" type="number" step="0.01" min="0" value={formData.price}
-                        onChange={handleChange} placeholder="24999" required style={{ ...inputStyle, paddingLeft: "1.6rem" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Precio original ($)</label>
-                    <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>$</span>
-                      <input name="originalPrice" type="number" step="0.01" min="0" value={formData.originalPrice}
-                        onChange={handleChange} placeholder="28999" style={{ ...inputStyle, paddingLeft: "1.6rem" }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Discount + Category */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                  <div>
-                    <label style={labelStyle}>Descuento (%)</label>
-                    <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>%</span>
-                      <input name="discount" type="number" min="0" max="100" value={formData.discount}
-                        onChange={handleChange} placeholder="13" style={{ ...inputStyle, paddingRight: "1.6rem" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Categoría</label>
-                    <div style={{ position: "relative" }}>
-                      <select name="category" value={formData.category} onChange={handleChange} style={{ ...inputStyle, appearance: "none" }}>
-                        {Array.from(new Set([...CATEGORIES, formData.category])).map(c => <option key={c}>{c}</option>)}
-                      </select>
-                      <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Image URL */}
-                <div>
-                  <label style={labelStyle}>URL de la imagen</label>
-                  <input name="imageUrl" type="url" value={formData.imageUrl} onChange={handleChange}
-                    placeholder="https://..." required style={inputStyle} />
-                  {formData.imageUrl && (
-                    <div style={{ marginTop: "0.5rem", background: "#fff", borderRadius: "0.5rem", padding: "0.5rem", height: "80px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)" }}>
-                      <img src={formData.imageUrl} alt="preview" style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Affiliate URL */}
-                <div>
-                  <label style={labelStyle}>Link de afiliado</label>
-                  <input name="affiliateUrl" type="url" value={formData.affiliateUrl} onChange={handleChange}
-                    placeholder="https://mercadolibre.com.mx/..." required style={inputStyle} />
-                  {isUrlDuplicate && (
-                    <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
-                      ⚠️ Ya existe una oferta activa con este mismo enlace.
-                    </span>
-                  )}
-                </div>
-
-                {/* Featured toggle */}
-                <label style={{
-                  display: "flex", alignItems: "center", gap: "0.6rem",
-                  cursor: "pointer", padding: "0.6rem 0",
-                }}>
-                  <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange}
-                    style={{ accentColor: "var(--clr-orange)", width: "18px", height: "18px" }} />
-                  <Star size={16} color="var(--clr-orange)" fill={formData.isFeatured ? "var(--clr-orange)" : "none"} style={{ transition: "all 0.2s" }} />
-                  <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Marcar como destacada</span>
-                </label>
-
-                {/* Botones de acción (dinámicos para creación y edición) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
-                  <button 
-                    type="submit" 
-                    disabled={submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))} 
-                    style={{
-                      background: submitting 
-                        ? "var(--clr-dim)" 
-                        : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
-                          ? "rgba(255,255,255,0.05)"
-                          : editingOfferId
-                            ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
-                            : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
-                      color: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "var(--clr-muted)" : "#fff",
-                      border: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "1px solid var(--clr-border)" : "none",
-                      borderRadius: "0.75rem",
-                      padding: "0.9rem", 
-                      fontWeight: 700, 
-                      fontSize: "0.95rem",
-                      cursor: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate)) ? "not-allowed" : "pointer",
-                      transition: "all 0.3s",
-                      opacity: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? 0.6 : 1,
-                      boxShadow: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))
-                        ? "none" 
-                        : editingOfferId 
-                          ? "0 4px 16px rgba(124,58,237,0.3)" 
-                          : "0 4px 16px rgba(255,92,0,0.3)",
-                    }}
-                  >
-                    {submitting 
-                      ? "Procesando..." 
-                      : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
-                        ? "⚠️ Corregir duplicados"
-                        : editingOfferId 
-                          ? "✦ Guardar cambios" 
-                          : "✦ Publicar oferta"}
-                  </button>
-
-                  {editingOfferId && (
-                    <button type="button" onClick={handleCancelEdit} style={{
-                      background: "rgba(255,255,255,0.03)",
-                      color: "var(--clr-muted)",
-                      border: "1px solid var(--clr-border)",
-                      borderRadius: "0.75rem",
-                      padding: "0.75rem",
-                      fontWeight: 600,
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.4rem",
-                      transition: "all 0.3s",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-                    >
-                      <X size={15} />
-                      Cancelar edición
-                    </button>
-                  )}
-                </div>
-              </div>
-            </form>
-
-            {/* Offers list */}
-            <div>
-              {/* Header con Buscador e Interactividad de Filtros */}
-              <div style={{
+          {activeTab === "offers" ? (
+            <div className="admin-grid-layout">
+              {/* Offers Form */}
+              <form onSubmit={handleSubmit} style={{
                 background: "rgba(14, 19, 38, 0.4)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
                 border: "1px solid rgba(255, 255, 255, 0.04)",
-                borderRadius: "1.25rem",
-                padding: "1.25rem",
-                marginBottom: "1.5rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1rem"
+                borderRadius: "1.25rem", padding: "1.25rem",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                transition: "all 0.3s ease",
               }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                    <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--clr-orange)", boxShadow: "0 0 8px var(--clr-orange)" }} />
-                    <span style={{ color: "var(--clr-muted)", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                      Ofertas publicadas
-                    </span>
-                  </div>
-                  <span style={{ fontSize: "0.75rem", color: "var(--clr-muted)", fontWeight: 600 }}>
-                    {searchQuery || selectedCategoryFilter !== "Todas"
-                      ? `Mostrando ${filteredOffers.length} de ${offers.length}`
-                      : `${offers.length} ofertas en total`}
+                <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
+                  <span style={{ 
+                    width: "28px", height: "28px", 
+                    background: editingOfferId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
+                    borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: editingOfferId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
+                    transition: "all 0.3s ease"
+                  }}>
+                    {editingOfferId ? <Edit3 size={14} color="#fff" /> : <Plus size={14} color="#fff" />}
                   </span>
-                </div>
+                  {editingOfferId ? "Editar oferta" : "Nueva oferta"}
+                </h2>
 
-                <div className="admin-filters-grid">
-                  {/* Buscador inteligente */}
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar oferta por título..."
-                      style={{ 
-                        ...inputStyle, 
-                        background: "rgba(0, 0, 0, 0.15)", 
-                        border: "1px solid rgba(255,255,255,0.05)",
-                        paddingLeft: "2.2rem" 
-                      }}
-                    />
-                    <Search size={15} style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)" }} />
-                    {searchQuery && (
-                      <button 
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--clr-muted)", cursor: "pointer" }}
-                      >
-                        <X size={14} />
-                      </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                  {/* Autocompletar inteligente con Energy Border animado */}
+                  {!editingOfferId && (
+                    <div className={`energy-border-container ${importing ? "active" : ""}`} style={{ padding: "0.85rem", marginBottom: "0.25rem" }}>
+                      <label style={{ ...labelStyle, color: "var(--clr-orange)", marginBottom: "0.35rem", display: "block" }}>⚡ Autocompletar con Link</label>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <input
+                          type="url"
+                          value={importUrl}
+                          onChange={(e) => setImportUrl(e.target.value)}
+                          placeholder="Pega tu link meli.la..."
+                          style={{ ...inputStyle, background: "rgba(0,0,0,0.15)", flex: 1, border: "1px solid rgba(255,255,255,0.05)" }}
+                        />
+                        <button
+                          type="button"
+                          disabled={importing}
+                          onClick={handleImport}
+                          style={{
+                            background: importing ? "var(--clr-dim)" : "var(--clr-orange)",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "0.6rem",
+                            padding: "0 1.2rem",
+                            fontWeight: 700,
+                            fontSize: "0.85rem",
+                            cursor: importing ? "not-allowed" : "pointer",
+                            transition: "all 0.3s",
+                            whiteSpace: "nowrap",
+                            boxShadow: importing ? "none" : "0 2px 8px rgba(255,92,0,0.2)",
+                          }}
+                        >
+                          {importing ? "..." : "✦ Importar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Title */}
+                  <div>
+                    <label style={labelStyle}>Título del producto</label>
+                    <input name="title" value={formData.title} onChange={handleChange}
+                      placeholder="Ej: iPhone 15 Pro Max 256GB" required style={inputStyle} />
+                    {isTitleDuplicate && (
+                      <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                        ⚠️ Ya existe una oferta activa con este título.
+                      </span>
                     )}
                   </div>
 
-                  {/* Selector rápido de categorías */}
-                  <div style={{ position: "relative" }}>
-                    <select
-                      value={selectedCategoryFilter}
-                      onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                      style={{ 
-                        ...inputStyle, 
-                        background: "rgba(0, 0, 0, 0.15)", 
-                        border: "1px solid rgba(255,255,255,0.05)",
-                        appearance: "none",
-                        paddingRight: "1.8rem"
+                  {/* Price row con adornos en línea */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={labelStyle}>Precio ($)</label>
+                      <div style={{ position: "relative" }}>
+                        <span style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>$</span>
+                        <input name="price" type="number" step="0.01" min="0" value={formData.price}
+                          onChange={handleChange} placeholder="24999" required style={{ ...inputStyle, paddingLeft: "1.6rem" }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Precio original ($)</label>
+                      <div style={{ position: "relative" }}>
+                        <span style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>$</span>
+                        <input name="originalPrice" type="number" step="0.01" min="0" value={formData.originalPrice}
+                          onChange={handleChange} placeholder="28999" style={{ ...inputStyle, paddingLeft: "1.6rem" }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Discount + Category */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={labelStyle}>Descuento (%)</label>
+                      <div style={{ position: "relative" }}>
+                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", fontSize: "0.85rem", fontWeight: 700 }}>%</span>
+                        <input name="discount" type="number" min="0" max="100" value={formData.discount}
+                          onChange={handleChange} placeholder="13" style={{ ...inputStyle, paddingRight: "1.6rem" }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Categoría</label>
+                      <div style={{ position: "relative" }}>
+                        <select name="category" value={formData.category} onChange={handleChange} style={{ ...inputStyle, appearance: "none" }}>
+                          {Array.from(new Set([...CATEGORIES, formData.category])).map(c => <option key={c}>{c}</option>)}
+                        </select>
+                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image URL */}
+                  <div>
+                    <label style={labelStyle}>URL de la imagen</label>
+                    <input name="imageUrl" type="url" value={formData.imageUrl} onChange={handleChange}
+                      placeholder="https://..." required style={inputStyle} />
+                    {formData.imageUrl && (
+                      <div style={{ marginTop: "0.5rem", background: "#fff", borderRadius: "0.5rem", padding: "0.5rem", height: "80px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)" }}>
+                        <img src={formData.imageUrl} alt="preview" style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Affiliate URL */}
+                  <div>
+                    <label style={labelStyle}>Link de afiliado</label>
+                    <input name="affiliateUrl" type="url" value={formData.affiliateUrl} onChange={handleChange}
+                      placeholder="https://mercadolibre.com.mx/..." required style={inputStyle} />
+                    {isUrlDuplicate && (
+                      <span style={{ fontSize: "0.75rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                        ⚠️ Ya existe una oferta activa con este mismo enlace.
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Featured toggle */}
+                  <label style={{
+                    display: "flex", alignItems: "center", gap: "0.6rem",
+                    cursor: "pointer", padding: "0.6rem 0",
+                  }}>
+                    <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange}
+                      style={{ accentColor: "var(--clr-orange)", width: "18px", height: "18px" }} />
+                    <Star size={16} color="var(--clr-orange)" fill={formData.isFeatured ? "var(--clr-orange)" : "none"} style={{ transition: "all 0.2s" }} />
+                    <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Marcar como destacada</span>
+                  </label>
+
+                  {/* Botones de acción (dinámicos para creación y edición) */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                    <button 
+                      type="submit" 
+                      disabled={submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))} 
+                      style={{
+                        background: submitting 
+                          ? "var(--clr-dim)" 
+                          : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
+                            ? "rgba(255,255,255,0.05)"
+                            : editingOfferId
+                              ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                              : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+                        color: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "var(--clr-muted)" : "#fff",
+                        border: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "1px solid var(--clr-border)" : "none",
+                        borderRadius: "0.75rem",
+                        padding: "0.9rem", 
+                        fontWeight: 700, 
+                        fontSize: "0.95rem",
+                        cursor: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate)) ? "not-allowed" : "pointer",
+                        transition: "all 0.3s",
+                        opacity: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? 0.6 : 1,
+                        boxShadow: submitting || (!editingOfferId && (isTitleDuplicate || isUrlDuplicate))
+                          ? "none" 
+                          : editingOfferId 
+                            ? "0 4px 16px rgba(124,58,237,0.3)" 
+                            : "0 4px 16px rgba(255,92,0,0.3)",
                       }}
                     >
-                      <option value="Todas" style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>Todas</option>
-                      {CATEGORIES.map(c => (
-                        <option key={c} value={c} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>{c}</option>
-                      ))}
-                    </select>
-                    <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.55rem" }}>▼</span>
+                      {submitting 
+                        ? "Procesando..." 
+                        : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
+                          ? "⚠️ Corregir duplicados"
+                          : editingOfferId 
+                            ? "✦ Guardar cambios" 
+                            : "✦ Publicar oferta"}
+                    </button>
+
+                    {editingOfferId && (
+                      <button type="button" onClick={handleCancelEdit} style={{
+                        background: "rgba(255,255,255,0.03)",
+                        color: "var(--clr-muted)",
+                        border: "1px solid var(--clr-border)",
+                        borderRadius: "0.75rem",
+                        padding: "0.75rem",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.4rem",
+                        transition: "all 0.3s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                      >
+                        <X size={15} />
+                        Cancelar edición
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
+              </form>
 
-              {loading ? (
-                <div style={{ textAlign: "center", padding: "4rem", color: "var(--clr-muted)" }}>Cargando ofertas...</div>
-              ) : filteredOffers.length === 0 ? (
+              {/* Offers list */}
+              <div>
+                {/* Header con Buscador e Interactividad de Filtros */}
                 <div style={{
-                  textAlign: "center", padding: "4rem 2rem",
-                  background: "rgba(14, 19, 38, 0.3)", border: "2px dashed var(--clr-border)",
-                  borderRadius: "1.25rem", color: "var(--clr-muted)",
+                  background: "rgba(14, 19, 38, 0.4)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  border: "1px solid rgba(255, 255, 255, 0.04)",
+                  borderRadius: "1.25rem",
+                  padding: "1.25rem",
+                  marginBottom: "1.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem"
                 }}>
-                  <Package size={40} style={{ margin: "0 auto 1rem", opacity: 0.15 }} />
-                  <p style={{ fontWeight: 600 }}>No se encontraron ofertas</p>
-                  <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>Intenta cambiar los términos de búsqueda o los filtros.</p>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  {/* Lista paginada y filtrada con animación fade-in */}
-                  <div key={`${currentPage}-${searchQuery}-${selectedCategoryFilter}`} className="fade-in-item" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    {paginatedOffers.map(offer => (
-                      <div 
-                        key={offer.id} 
-                        className={`admin-offer-card ${offer.isFeatured ? "featured" : ""}`}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--clr-orange)", boxShadow: "0 0 8px var(--clr-orange)" }} />
+                      <span style={{ color: "var(--clr-muted)", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                        Ofertas publicadas
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: "var(--clr-muted)", fontWeight: 600 }}>
+                      {searchQuery || selectedCategoryFilter !== "Todas"
+                        ? `Mostrando ${filteredOffers.length} de ${offers.length}`
+                        : `${offers.length} ofertas en total`}
+                    </span>
+                  </div>
+
+                  <div className="admin-filters-grid">
+                    {/* Buscador inteligente */}
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Buscar oferta por título..."
+                        style={{ 
+                          ...inputStyle, 
+                          background: "rgba(0, 0, 0, 0.15)", 
+                          border: "1px solid rgba(255,255,255,0.05)",
+                          paddingLeft: "2.2rem" 
+                        }}
+                      />
+                      <Search size={15} style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)" }} />
+                      {searchQuery && (
+                        <button 
+                          type="button"
+                          onClick={() => setSearchQuery("")}
+                          style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--clr-muted)", cursor: "pointer" }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Selector rápido de categorías */}
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={selectedCategoryFilter}
+                        onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                        style={{ 
+                          ...inputStyle, 
+                          background: "rgba(0, 0, 0, 0.15)", 
+                          border: "1px solid rgba(255,255,255,0.05)",
+                          appearance: "none",
+                          paddingRight: "1.8rem"
+                        }}
                       >
-                        {/* Contenedor superior para Thumbnail + Título/Categoría */}
-                        <div className="admin-offer-header" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "1rem" }}>
-                          {/* Thumbnail miniatura del producto */}
-                          <div style={{
-                            width: "56px", height: "56px", flexShrink: 0,
-                            background: "#fff", borderRadius: "0.6rem", padding: "0.3rem",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                            position: "relative"
-                          }}>
-                            <img src={offer.imageUrl} alt={offer.title}
-                              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
-                            
-                            {offer.isFeatured && (
-                              <div style={{ position: "absolute", top: "-6px", left: "-6px", background: "var(--clr-bg)", borderRadius: "50%", padding: "2px", border: "1px solid rgba(255,92,0,0.3)" }}>
-                                <Star size={12} color="var(--clr-orange)" fill="var(--clr-orange)" />
+                        <option value="Todas" style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>Todas</option>
+                        {CATEGORIES.map(c => (
+                          <option key={c} value={c} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>{c}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.55rem" }}>▼</span>
+                    </div>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div style={{ textAlign: "center", padding: "4rem", color: "var(--clr-muted)" }}>Cargando ofertas...</div>
+                ) : filteredOffers.length === 0 ? (
+                  <div style={{
+                    textAlign: "center", padding: "4rem 2rem",
+                    background: "rgba(14, 19, 38, 0.3)", border: "2px dashed var(--clr-border)",
+                    borderRadius: "1.25rem", color: "var(--clr-muted)",
+                  }}>
+                    <Package size={40} style={{ margin: "0 auto 1rem", opacity: 0.15 }} />
+                    <p style={{ fontWeight: 600 }}>No se encontraron ofertas</p>
+                    <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>Intenta cambiar los términos de búsqueda o los filtros.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {/* Lista paginada y filtrada con animación fade-in */}
+                    <div key={`${currentPage}-${searchQuery}-${selectedCategoryFilter}`} className="fade-in-item" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {paginatedOffers.map(offer => (
+                        <div 
+                          key={offer.id} 
+                          className={`admin-offer-card ${offer.isFeatured ? "featured" : ""}`}
+                        >
+                          {/* Contenedor superior para Thumbnail + Título/Categoría */}
+                          <div className="admin-offer-header" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "1rem" }}>
+                            {/* Thumbnail miniatura del producto */}
+                            <div style={{
+                              width: "56px", height: "56px", flexShrink: 0,
+                              background: "#fff", borderRadius: "0.6rem", padding: "0.3rem",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                              position: "relative"
+                            }}>
+                              <img src={offer.imageUrl} alt={offer.title}
+                                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
+                              
+                              {offer.isFeatured && (
+                                <div style={{ position: "absolute", top: "-6px", left: "-6px", background: "var(--clr-bg)", borderRadius: "50%", padding: "2px", border: "1px solid rgba(255,92,0,0.3)" }}>
+                                  <Star size={12} color="var(--clr-orange)" fill="var(--clr-orange)" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info de la oferta */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p className="admin-offer-title" style={{ fontWeight: 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
+                                {offer.title}
+                              </p>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.25rem" }}>
+                                <select
+                                  value={offer.category}
+                                  onChange={(e) => updateOffer(offer.id, { category: e.target.value })}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    fontWeight: 700,
+                                    color: "var(--clr-orange)",
+                                    background: "rgba(255,92,0,0.06)",
+                                    border: "1px solid rgba(255,92,0,0.15)",
+                                    borderRadius: "4px",
+                                    padding: "0.1rem 0.35rem",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.1em",
+                                    cursor: "pointer",
+                                    outline: "none",
+                                    fontFamily: "inherit",
+                                    transition: "all 0.2s",
+                                  }}
+                                  onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = "var(--clr-orange)";
+                                    e.currentTarget.style.background = "rgba(255,92,0,0.12)";
+                                  }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = "rgba(255,92,0,0.15)";
+                                    e.currentTarget.style.background = "rgba(255,92,0,0.06)";
+                                  }}
+                                >
+                                  {CATEGORIES.map(c => (
+                                    <option key={c} value={c} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>
+                                      {c}
+                                    </option>
+                                  ))}
+                                </select>
+                                {offer.discount && (
+                                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-red)", background: "rgba(225,29,72,0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                                    -{offer.discount}%
+                                  </span>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
 
-                          {/* Info de la oferta */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p className="admin-offer-title" style={{ fontWeight: 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
-                              {offer.title}
-                            </p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.25rem" }}>
-                              <select
-                                value={offer.category}
-                                onChange={(e) => updateOffer(offer.id, { category: e.target.value })}
-                                onClick={(e) => e.stopPropagation()}
+                          {/* Precios y Acciones */}
+                          <div className="admin-offer-body" style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexShrink: 0 }}>
+                            {/* Precios */}
+                            <div className="admin-offer-prices" style={{ textAlign: "right" }}>
+                              <p style={{ fontWeight: 800, fontFamily: "Sora, sans-serif", fontSize: "1.1rem", color: "#fff" }}>
+                                ${offer.price.toLocaleString("es-MX")}
+                              </p>
+                              {offer.originalPrice && (
+                                <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", textDecoration: "line-through" }}>
+                                  ${offer.originalPrice.toLocaleString("es-MX")}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Acciones interactivas (Editar y Eliminar) */}
+                            <div className="admin-offer-actions" style={{ display: "flex", gap: "0.35rem" }}>
+                              {/* Botón de Edición Rápida */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditClick(offer)}
                                 style={{
-                                  fontSize: "0.7rem",
-                                  fontWeight: 700,
-                                  color: "var(--clr-orange)",
-                                  background: "rgba(255,92,0,0.06)",
-                                  border: "1px solid rgba(255,92,0,0.15)",
-                                  borderRadius: "4px",
-                                  padding: "0.1rem 0.35rem",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.1em",
-                                  cursor: "pointer",
-                                  outline: "none",
-                                  fontFamily: "inherit",
+                                  width: "36px", height: "36px", borderRadius: "0.6rem",
+                                  background: "transparent", border: "1px solid transparent",
+                                  color: "var(--clr-muted)", cursor: "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
                                   transition: "all 0.2s",
                                 }}
-                                onMouseEnter={e => {
-                                  e.currentTarget.style.borderColor = "var(--clr-orange)";
-                                  e.currentTarget.style.background = "rgba(255,92,0,0.12)";
-                                }}
-                                onMouseLeave={e => {
-                                  e.currentTarget.style.borderColor = "rgba(255,92,0,0.15)";
-                                  e.currentTarget.style.background = "rgba(255,92,0,0.06)";
-                                }}
+                                onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-purple)"; e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)"; e.currentTarget.style.background = "rgba(124,58,237,0.08)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
                               >
-                                {CATEGORIES.map(c => (
-                                  <option key={c} value={c} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>
-                                    {c}
-                                  </option>
-                                ))}
-                              </select>
-                              {offer.discount && (
-                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-red)", background: "rgba(225,29,72,0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
-                                  -{offer.discount}%
-                                </span>
-                              )}
+                                <Edit3 size={15} />
+                              </button>
+
+                              {/* Botón de Eliminación */}
+                              <button
+                                type="button"
+                                onClick={() => deleteOffer(offer.id)}
+                                style={{
+                                  width: "36px", height: "36px", borderRadius: "0.6rem",
+                                  background: "transparent", border: "1px solid transparent",
+                                  color: "var(--clr-muted)", cursor: "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  transition: "all 0.2s",
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; e.currentTarget.style.background = "rgba(225,29,72,0.08)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
 
-                        {/* Precios y Acciones */}
-                        <div className="admin-offer-body" style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexShrink: 0 }}>
-                          {/* Precios */}
-                          <div className="admin-offer-prices" style={{ textAlign: "right" }}>
-                            <p style={{ fontWeight: 800, fontFamily: "Sora, sans-serif", fontSize: "1.1rem", color: "#fff" }}>
-                              ${offer.price.toLocaleString("es-MX")}
-                            </p>
-                            {offer.originalPrice && (
-                              <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", textDecoration: "line-through" }}>
-                                ${offer.originalPrice.toLocaleString("es-MX")}
-                              </p>
-                            )}
-                          </div>
+                    {/* Paginador interactivo con transiciones premium */}
+                    {totalPages > 1 && (
+                      <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center", 
+                        gap: "0.4rem", 
+                        marginTop: "1.5rem",
+                        background: "rgba(14, 19, 38, 0.2)",
+                        padding: "0.6rem",
+                        borderRadius: "0.85rem",
+                        border: "1px solid var(--clr-border)"
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="pagination-btn"
+                          style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Ant</span>
+                        </button>
 
-                          {/* Acciones interactivas (Editar y Eliminar) */}
-                          <div className="admin-offer-actions" style={{ display: "flex", gap: "0.35rem" }}>
-                            {/* Botón de Edición Rápida */}
+                        {Array.from({ length: totalPages }).map((_, index) => {
+                          const pageNum = index + 1;
+                          return (
                             <button
+                              key={pageNum}
                               type="button"
-                              onClick={() => handleEditClick(offer)}
-                              style={{
-                                width: "36px", height: "36px", borderRadius: "0.6rem",
-                                background: "transparent", border: "1px solid transparent",
-                                color: "var(--clr-muted)", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                transition: "all 0.2s",
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-purple)"; e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)"; e.currentTarget.style.background = "rgba(124,58,237,0.08)"; }}
-                              onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`pagination-btn ${currentPage === pageNum ? "active" : ""}`}
                             >
-                              <Edit3 size={15} />
+                              {pageNum}
                             </button>
+                          );
+                        })}
 
-                            {/* Botón de Eliminación */}
-                            <button
-                              type="button"
-                              onClick={() => deleteOffer(offer.id)}
-                              style={{
-                                width: "36px", height: "36px", borderRadius: "0.6rem",
-                                background: "transparent", border: "1px solid transparent",
-                                color: "var(--clr-muted)", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                transition: "all 0.2s",
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; e.currentTarget.style.background = "rgba(225,29,72,0.08)"; }}
-                              onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="pagination-btn"
+                          style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
+                        >
+                          <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Sig</span>
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
-                    ))}
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="admin-grid-layout">
+              {/* Coupons Form */}
+              <form onSubmit={handleCouponSubmit} style={{
+                background: "rgba(14, 19, 38, 0.4)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(255, 255, 255, 0.04)",
+                borderRadius: "1.25rem", padding: "1.25rem",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                transition: "all 0.3s ease",
+              }}>
+                <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
+                  <span style={{ 
+                    width: "28px", height: "28px", 
+                    background: editingCouponId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
+                    borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: editingCouponId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
+                    transition: "all 0.3s ease"
+                  }}>
+                    {editingCouponId ? <Edit3 size={14} color="#fff" /> : <Plus size={14} color="#fff" />}
+                  </span>
+                  {editingCouponId ? "Editar cupón" : "Nuevo cupón"}
+                </h2>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                  {/* Title */}
+                  <div>
+                    <label style={labelStyle}>Título del cupón</label>
+                    <input 
+                      name="title" 
+                      value={couponFormData.title} 
+                      onChange={(e) => setCouponFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Ej: $150 de Dcto en tu primera compra" 
+                      required 
+                      style={inputStyle} 
+                    />
                   </div>
 
-                  {/* Paginador interactivo con transiciones premium */}
-                  {totalPages > 1 && (
-                    <div style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      gap: "0.4rem", 
-                      marginTop: "1.5rem",
-                      background: "rgba(14, 19, 38, 0.2)",
-                      padding: "0.6rem",
-                      borderRadius: "0.85rem",
-                      border: "1px solid var(--clr-border)"
-                    }}>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="pagination-btn"
-                        style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
-                      >
-                        <ChevronLeft size={14} />
-                        <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Ant</span>
-                      </button>
+                  {/* Code + Discount */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={labelStyle}>Código</label>
+                      <input 
+                        name="code" 
+                        value={couponFormData.code} 
+                        onChange={(e) => setCouponFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                        placeholder="PROMO150" 
+                        required 
+                        style={inputStyle} 
+                      />
+                      {isCouponDuplicate && (
+                        <span style={{ fontSize: "0.7rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                          ⚠️ Ya existe este código para esta tienda.
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Descuento</label>
+                      <input 
+                        name="discount" 
+                        value={couponFormData.discount} 
+                        onChange={(e) => setCouponFormData(prev => ({ ...prev, discount: e.target.value }))}
+                        placeholder="Ej: $150 MXN o 15% DTO" 
+                        style={inputStyle} 
+                      />
+                    </div>
+                  </div>
 
-                      {Array.from({ length: totalPages }).map((_, index) => {
-                        const pageNum = index + 1;
+                  {/* Store + Category */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={labelStyle}>Tienda</label>
+                      <div style={{ position: "relative" }}>
+                        <select 
+                          name="store" 
+                          value={couponFormData.store} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, store: e.target.value }))}
+                          style={{ ...inputStyle, appearance: "none" }}
+                        >
+                          <option value="Mercado Libre">Mercado Libre</option>
+                          <option value="Amazon">Amazon</option>
+                          <option value="AliExpress">AliExpress</option>
+                          <option value="General">General</option>
+                        </select>
+                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Categoría</label>
+                      <div style={{ position: "relative" }}>
+                        <select 
+                          name="category" 
+                          value={couponFormData.category} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, category: e.target.value }))}
+                          style={{ ...inputStyle, appearance: "none" }}
+                        >
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expiry Date */}
+                  <div>
+                    <label style={labelStyle}>Fecha de Expiración</label>
+                    <input 
+                      type="date" 
+                      name="expiryDate" 
+                      value={couponFormData.expiryDate} 
+                      onChange={(e) => setCouponFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                      style={inputStyle} 
+                    />
+                  </div>
+
+                  {/* Link */}
+                  <div>
+                    <label style={labelStyle}>Enlace de Tienda</label>
+                    <input 
+                      name="link" 
+                      type="url" 
+                      value={couponFormData.link} 
+                      onChange={(e) => setCouponFormData(prev => ({ ...prev, link: e.target.value }))}
+                      placeholder="https://..." 
+                      required 
+                      style={inputStyle} 
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label style={labelStyle}>Descripción</label>
+                    <textarea 
+                      name="description" 
+                      value={couponFormData.description} 
+                      onChange={(e) => setCouponFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Detalles sobre el uso del cupón, mínimo de compra, etc." 
+                      rows={3} 
+                      style={{ ...inputStyle, resize: "none" }} 
+                    />
+                  </div>
+
+                  {/* Toggles */}
+                  <div style={{ display: "flex", gap: "1.5rem", padding: "0.25rem 0" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                      <input 
+                        type="checkbox" 
+                        name="isActive" 
+                        checked={couponFormData.isActive} 
+                        onChange={(e) => setCouponFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                        style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
+                      />
+                      <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Activo</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                      <input 
+                        type="checkbox" 
+                        name="isFeatured" 
+                        checked={couponFormData.isFeatured} 
+                        onChange={(e) => setCouponFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                        style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
+                      />
+                      <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Destacado</span>
+                    </label>
+                  </div>
+
+                  {/* Form Actions */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                    <button 
+                      type="submit" 
+                      disabled={submittingCoupon || (!editingCouponId && isCouponDuplicate)} 
+                      style={{
+                        background: submittingCoupon 
+                          ? "var(--clr-dim)" 
+                          : !editingCouponId && isCouponDuplicate
+                            ? "rgba(255,255,255,0.05)"
+                            : editingCouponId
+                              ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                              : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+                        color: !editingCouponId && isCouponDuplicate ? "var(--clr-muted)" : "#fff",
+                        border: !editingCouponId && isCouponDuplicate ? "1px solid var(--clr-border)" : "none",
+                        borderRadius: "0.75rem",
+                        padding: "0.9rem", 
+                        fontWeight: 700, 
+                        fontSize: "0.95rem",
+                        cursor: submittingCoupon || (!editingCouponId && isCouponDuplicate) ? "not-allowed" : "pointer",
+                        transition: "all 0.3s",
+                        opacity: !editingCouponId && isCouponDuplicate ? 0.6 : 1,
+                        boxShadow: submittingCoupon || (!editingCouponId && isCouponDuplicate)
+                          ? "none" 
+                          : editingCouponId 
+                            ? "0 4px 16px rgba(124,58,237,0.3)" 
+                            : "0 4px 16px rgba(255,92,0,0.3)",
+                      }}
+                    >
+                      {submittingCoupon 
+                        ? "Procesando..." 
+                        : !editingCouponId && isCouponDuplicate
+                          ? "⚠️ Corregir duplicados"
+                          : editingCouponId 
+                            ? "✦ Guardar cambios" 
+                            : "✦ Publicar cupón"}
+                    </button>
+
+                    {editingCouponId && (
+                      <button type="button" onClick={handleCancelCouponEdit} style={{
+                        background: "rgba(255,255,255,0.03)",
+                        color: "var(--clr-muted)",
+                        border: "1px solid var(--clr-border)",
+                        borderRadius: "0.75rem",
+                        padding: "0.75rem",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.4rem",
+                        transition: "all 0.3s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                      >
+                        <X size={15} />
+                        Cancelar edición
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+
+              {/* Coupons List */}
+              <div>
+                {/* Header with Search and Filter tools */}
+                <div style={{
+                  background: "rgba(14, 19, 38, 0.4)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  border: "1px solid rgba(255, 255, 255, 0.04)",
+                  borderRadius: "1.25rem",
+                  padding: "1.25rem",
+                  marginBottom: "1.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--clr-orange)", boxShadow: "0 0 8px var(--clr-orange)" }} />
+                      <span style={{ color: "var(--clr-muted)", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                        Cupones publicados
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: "var(--clr-muted)", fontWeight: 600 }}>
+                      {couponSearchQuery || couponSelectedStoreFilter !== "Todas" || couponSelectedCategoryFilter !== "Todas"
+                        ? `Mostrando ${filteredCoupons.length} de ${coupons.length}`
+                        : `${coupons.length} cupones en total`}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px", gap: "0.75rem" }} className="admin-filters-grid">
+                    {/* Search */}
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="text"
+                        value={couponSearchQuery}
+                        onChange={(e) => setCouponSearchQuery(e.target.value)}
+                        placeholder="Buscar por título, código..."
+                        style={{ 
+                          ...inputStyle, 
+                          background: "rgba(0, 0, 0, 0.15)", 
+                          border: "1px solid rgba(255,255,255,0.05)",
+                          paddingLeft: "2.2rem" 
+                        }}
+                      />
+                      <Search size={15} style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)" }} />
+                      {couponSearchQuery && (
+                        <button 
+                          type="button"
+                          onClick={() => setCouponSearchQuery("")}
+                          style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--clr-muted)", cursor: "pointer" }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Store Filter */}
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={couponSelectedStoreFilter}
+                        onChange={(e) => setCouponSelectedStoreFilter(e.target.value)}
+                        style={{ 
+                          ...inputStyle, 
+                          background: "rgba(0, 0, 0, 0.15)", 
+                          border: "1px solid rgba(255,255,255,0.05)",
+                          appearance: "none",
+                          paddingRight: "1.8rem"
+                        }}
+                      >
+                        {couponStores.map(store => (
+                          <option key={store} value={store} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>{store}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.55rem" }}>▼</span>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div style={{ position: "relative" }}>
+                      <select
+                        value={couponSelectedCategoryFilter}
+                        onChange={(e) => setCouponSelectedCategoryFilter(e.target.value)}
+                        style={{ 
+                          ...inputStyle, 
+                          background: "rgba(0, 0, 0, 0.15)", 
+                          border: "1px solid rgba(255,255,255,0.05)",
+                          appearance: "none",
+                          paddingRight: "1.8rem"
+                        }}
+                      >
+                        {couponCategories.map(cat => (
+                          <option key={cat} value={cat} style={{ background: "var(--clr-card)", color: "var(--clr-text)" }}>{cat}</option>
+                        ))}
+                      </select>
+                      <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.55rem" }}>▼</span>
+                    </div>
+                  </div>
+                </div>
+
+                {couponsLoading ? (
+                  <div style={{ textAlign: "center", padding: "4rem", color: "var(--clr-muted)" }}>Cargando cupones...</div>
+                ) : filteredCoupons.length === 0 ? (
+                  <div style={{
+                    textAlign: "center", padding: "4rem 2rem",
+                    background: "rgba(14, 19, 38, 0.3)", border: "2px dashed var(--clr-border)",
+                    borderRadius: "1.25rem", color: "var(--clr-muted)",
+                  }}>
+                    <Ticket size={40} style={{ margin: "0 auto 1rem", opacity: 0.15 }} />
+                    <p style={{ fontWeight: 600 }}>No se encontraron cupones</p>
+                    <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>Intenta cambiar los términos de búsqueda o los filtros.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {/* Lista paginada y filtrada */}
+                    <div key={`${couponCurrentPage}-${couponSearchQuery}-${couponSelectedStoreFilter}`} className="fade-in-item" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {paginatedCoupons.map(coupon => {
+                        const isFeatured = !!coupon.isFeatured;
+                        const isActive = coupon.isActive !== false;
+                        const storeClass = coupon.store.toLowerCase().replace(/\s+/g, "");
+                        const formattedStoreClass = ["mercadolibre", "amazon", "aliexpress"].includes(storeClass) ? storeClass : "general";
+
                         return (
-                          <button
-                            key={pageNum}
-                            type="button"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`pagination-btn ${currentPage === pageNum ? "active" : ""}`}
+                          <div 
+                            key={coupon.id} 
+                            className={`admin-offer-card ${isFeatured ? "featured" : ""}`}
+                            style={{ opacity: isActive ? 1 : 0.6 }}
                           >
-                            {pageNum}
-                          </button>
+                            {/* Top part with Ticket Icon + Title/Details */}
+                            <div className="admin-offer-header" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "1rem" }}>
+                              {/* Ticket Icon container */}
+                              <div style={{
+                                width: "56px", height: "56px", flexShrink: 0,
+                                background: "rgba(255, 92, 0, 0.08)", borderRadius: "0.6rem",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                position: "relative", border: "1px dashed rgba(255, 92, 0, 0.2)"
+                              }}>
+                                <Ticket size={24} color="var(--clr-orange)" />
+                                
+                                {isFeatured && (
+                                  <div style={{ position: "absolute", top: "-6px", left: "-6px", background: "var(--clr-bg)", borderRadius: "50%", padding: "2px", border: "1px solid rgba(255,92,0,0.3)" }}>
+                                    <Star size={12} color="var(--clr-orange)" fill="var(--clr-orange)" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Coupon Info */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p className="admin-offer-title" style={{ fontWeight: 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
+                                  {coupon.title}
+                                </p>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.25rem", flexWrap: "wrap" }}>
+                                  <span className={`coupon-store-tag ${formattedStoreClass}`}>
+                                    {coupon.store}
+                                  </span>
+                                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", padding: "0.1rem 0.5rem", borderRadius: "4px", fontFamily: "monospace" }}>
+                                    {coupon.code}
+                                  </span>
+                                  {coupon.discount && (
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-red)", background: "rgba(225,29,72,0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                                      {coupon.discount}
+                                    </span>
+                                  )}
+                                  {!isActive && (
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-muted)", background: "rgba(255,255,255,0.05)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                                      Inactivo
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Controls & Options */}
+                            <div className="admin-offer-body" style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexShrink: 0 }}>
+                              {/* Toggle active / Toggle featured */}
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", cursor: "pointer", userSelect: "none" }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isActive}
+                                    onChange={(e) => updateCoupon(coupon.id, { isActive: e.target.checked })}
+                                    style={{ accentColor: "var(--clr-orange)", width: "12px", height: "12px" }}
+                                  />
+                                  <span style={{ fontSize: "0.7rem", color: "var(--clr-muted)" }}>Activo</span>
+                                </label>
+                                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", cursor: "pointer", userSelect: "none" }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isFeatured}
+                                    onChange={(e) => updateCoupon(coupon.id, { isFeatured: e.target.checked })}
+                                    style={{ accentColor: "var(--clr-orange)", width: "12px", height: "12px" }}
+                                  />
+                                  <span style={{ fontSize: "0.7rem", color: "var(--clr-muted)" }}>Destacado</span>
+                                </label>
+                              </div>
+
+                              {/* Actions (Edit and Delete) */}
+                              <div className="admin-offer-actions" style={{ display: "flex", gap: "0.35rem" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCouponEditClick(coupon)}
+                                  style={{
+                                    width: "36px", height: "36px", borderRadius: "0.6rem",
+                                    background: "transparent", border: "1px solid transparent",
+                                    color: "var(--clr-muted)", cursor: "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    transition: "all 0.2s",
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-purple)"; e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)"; e.currentTarget.style.background = "rgba(124,58,237,0.08)"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
+                                >
+                                  <Edit3 size={15} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => deleteCoupon(coupon.id)}
+                                  style={{
+                                    width: "36px", height: "36px", borderRadius: "0.6rem",
+                                    background: "transparent", border: "1px solid transparent",
+                                    color: "var(--clr-muted)", cursor: "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    transition: "all 0.2s",
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.color = "var(--clr-red)"; e.currentTarget.style.borderColor = "rgba(225,29,72,0.3)"; e.currentTarget.style.background = "rgba(225,29,72,0.08)"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "transparent"; }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         );
                       })}
-
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="pagination-btn"
-                        style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
-                      >
-                        <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Sig</span>
-                        <ChevronRight size={14} />
-                      </button>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Pagination control */}
+                    {couponTotalPages > 1 && (
+                      <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center", 
+                        gap: "0.4rem", 
+                        marginTop: "1.5rem",
+                        background: "rgba(14, 19, 38, 0.2)",
+                        padding: "0.6rem",
+                        borderRadius: "0.85rem",
+                        border: "1px solid var(--clr-border)"
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setCouponCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={couponCurrentPage === 1}
+                          className="pagination-btn"
+                          style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Ant</span>
+                        </button>
+
+                        {Array.from({ length: couponTotalPages }).map((_, index) => {
+                          const pageNum = index + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              type="button"
+                              onClick={() => setCouponCurrentPage(pageNum)}
+                              className={`pagination-btn ${couponCurrentPage === pageNum ? "active" : ""}`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => setCouponCurrentPage(prev => Math.min(couponTotalPages, prev + 1))}
+                          disabled={couponCurrentPage === couponTotalPages}
+                          className="pagination-btn"
+                          style={{ width: "auto", padding: "0 0.8rem", gap: "0.2rem" }}
+                        >
+                          <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Sig</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

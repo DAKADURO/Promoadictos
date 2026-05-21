@@ -1124,6 +1124,44 @@ body {
   }
 }
 
+/* Navbar Coupons Button */
+.nav-cupones-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  color: #a78bfa !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition: all 0.3s var(--ease);
+  cursor: pointer;
+}
+
+.nav-cupones-btn:hover {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.45);
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.15);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .nav-cupones-btn {
+    padding: 0.45rem;
+    border-radius: 50%;
+    width: 2.3rem;
+    height: 2.3rem;
+    justify-content: center;
+  }
+  .nav-cupones-btn span {
+    display: none;
+  }
+}
+
+
 /* ─────────────────────────────────────────
    MERCADO PAGO POINT TERMINALS SECTION
    ───────────────────────────────────────── */
@@ -2970,6 +3008,333 @@ span.price-modal-desktop-only {
     padding: 1.25rem;
   }
 }
+
+/* ─────────────────────────────────────────
+   COUPONS SECTION (TICKET GLASSMORPHISM)
+   ───────────────────────────────────────── */
+.coupons-container {
+  padding: 3rem 1.5rem 6rem;
+}
+
+.coupons-hero {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 3.5rem;
+}
+
+.coupons-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+
+.coupons-subtitle {
+  font-size: 1.05rem;
+  color: var(--clr-muted);
+  line-height: 1.6;
+}
+
+/* Store Filter Bar */
+.store-filter-bar {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.store-filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.store-filter-pill:hover {
+  color: var(--clr-text);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.store-filter-pill.active {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: var(--clr-purple);
+  color: #a78bfa;
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.12);
+}
+
+/* Grid & Cards */
+.coupons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.coupon-card {
+  position: relative;
+  background: rgba(14, 19, 38, 0.45);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  min-height: 250px;
+}
+
+.coupon-card:hover {
+  transform: translateY(-6px) translateZ(0);
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), 0 0 25px rgba(124, 58, 237, 0.05);
+}
+
+/* Ticket punch holes simulated cross-browser */
+.ticket-cutout-left,
+.ticket-cutout-right {
+  position: absolute;
+  top: 55%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--clr-bg); /* Matches background to simulate a hole */
+  z-index: 5;
+  transition: border-color 0.4s;
+}
+
+.ticket-cutout-left {
+  left: -9px;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ticket-cutout-right {
+  right: -9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.coupon-card:hover .ticket-cutout-left {
+  border-right-color: rgba(124, 58, 237, 0.25);
+}
+
+.coupon-card:hover .ticket-cutout-right {
+  border-left-color: rgba(124, 58, 237, 0.25);
+}
+
+/* Upper Ticket Panel */
+.coupon-upper-panel {
+  padding: 1.5rem 1.5rem 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.coupon-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.coupon-store-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+}
+
+/* Custom store theme tags */
+.coupon-store-tag.mercadolibre {
+  background: rgba(255, 230, 0, 0.08);
+  border: 1px solid rgba(255, 230, 0, 0.2);
+  color: #FFE600;
+}
+
+.coupon-store-tag.amazon {
+  background: rgba(255, 153, 0, 0.08);
+  border: 1px solid rgba(255, 153, 0, 0.2);
+  color: #FF9900;
+}
+
+.coupon-store-tag.aliexpress {
+  background: rgba(225, 29, 72, 0.08);
+  border: 1px solid rgba(225, 29, 72, 0.2);
+  color: #FF4A6B;
+}
+
+.coupon-store-tag.general {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  color: #a78bfa;
+}
+
+.coupon-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--clr-orange-bg);
+  border: 1px solid rgba(255, 92, 0, 0.2);
+  color: var(--clr-orange-lt);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.coupon-discount-value {
+  font-family: 'Sora', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--clr-text);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-top: 0.25rem;
+  background: linear-gradient(110deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.coupon-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  line-height: 1.4;
+  margin-top: 0.15rem;
+}
+
+.coupon-desc {
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+  line-height: 1.5;
+}
+
+/* Dashed ticket divider */
+.coupon-ticket-divider {
+  position: relative;
+  height: 1px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  margin: 0.5rem 0;
+  z-index: 2;
+  transition: border-color 0.4s;
+}
+
+.coupon-card:hover .coupon-ticket-divider {
+  border-top-color: rgba(124, 58, 237, 0.2);
+}
+
+/* Lower Ticket Panel */
+.coupon-lower-panel {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.coupon-expiry-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--clr-muted);
+}
+
+.coupon-expiry-icon {
+  flex-shrink: 0;
+}
+
+.coupon-action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.coupon-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+}
+
+.coupon-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.coupon-copy-btn.copied {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: var(--clr-green);
+  color: var(--clr-green) !important;
+}
+
+.coupon-shop-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.55rem;
+  background: linear-gradient(135deg, var(--clr-purple), #9061f9);
+  color: #fff !important;
+  cursor: pointer;
+  transition: all 0.35s var(--ease);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.coupon-shop-link:hover {
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .coupons-container {
+    padding: 1.5rem 1rem 5rem;
+  }
+  .coupons-hero {
+    margin-bottom: 2rem;
+  }
+  .coupons-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .store-filter-bar {
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .store-filter-pill {
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+  }
+}
+
 
 
 

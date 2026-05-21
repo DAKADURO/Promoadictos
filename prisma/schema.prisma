@@ -24,3 +24,20 @@ model Offer {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model Coupon {
+  id           String    @id @default(cuid())
+  title        String
+  code         String    // Ej: "MELI100" o "N/A" para automáticos
+  discount     String?   // Ej: "10%", "$100 MXN", "Envío gratis"
+  description  String?
+  store        String    // Ej: "Mercado Libre", "Amazon", "AliExpress"
+  link         String
+  category     String    @default("General")
+  expiryDate   DateTime?
+  isActive     Boolean   @default(true)
+  isFeatured   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
