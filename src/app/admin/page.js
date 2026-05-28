@@ -120,6 +120,7 @@ export default function AdminPage() {
           imageUrl: data.imageUrl || prev.imageUrl,
           affiliateUrl: data.affiliateUrl || prev.affiliateUrl || url,
           category: data.category || prev.category,
+          brand: data.brand || prev.brand,
         }));
         showToast("¡Datos importados con éxito!");
       } else {

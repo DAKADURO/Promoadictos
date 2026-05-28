@@ -422,7 +422,7 @@ export async function scrapeProduct(targetUrl) {
 
     // Extract details from Nordic State JSON
     const state = extractNordicState(html);
-    let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl, categoryId: null };
+    let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl, categoryId: null, brand: "" };
 
     if (state) {
       // 1. Try to extract details directly from the first polycard in the state (fastest, 100% accurate)
@@ -452,6 +452,12 @@ export async function scrapeProduct(targetUrl) {
               }
               if (item.pictures && item.pictures.length > 0) {
                 details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
+              }
+              if (item.attributes && Array.isArray(item.attributes)) {
+                const brandAttr = item.attributes.find(a => a.id === "BRAND");
+                if (brandAttr && brandAttr.value_name) {
+                  details.brand = brandAttr.value_name;
+                }
               }
             }
           } catch (apiErr) {
@@ -499,6 +505,7 @@ export async function scrapeProduct(targetUrl) {
       imageUrl: details.imageUrl || imageUrl,
       affiliateUrl: targetUrl, // Keep original affiliate link
       category: detectedCategory,
+      brand: details.brand,
     };
   }
 
@@ -529,6 +536,15 @@ export async function scrapeProduct(targetUrl) {
       discount = Math.round(((originalPrice - price) / originalPrice) * 100);
     }
 
+    // Extract brand
+    let brand = "";
+    if (item.attributes && Array.isArray(item.attributes)) {
+      const brandAttr = item.attributes.find(a => a.id === "BRAND");
+      if (brandAttr && brandAttr.value_name) {
+        brand = brandAttr.value_name;
+      }
+    }
+
     // Resolve the category intelligently
     let detectedCategory = "General";
     if (item.category_id) {
@@ -547,6 +563,7 @@ export async function scrapeProduct(targetUrl) {
       imageUrl: imageUrl,
       affiliateUrl: targetUrl,
       category: detectedCategory,
+      brand: brand,
     };
   }
 
