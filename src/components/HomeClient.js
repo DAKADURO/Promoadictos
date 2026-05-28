@@ -10,6 +10,7 @@ import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, Trendin
 export default function HomeClient({ offers }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
+  const [brand, setBrand] = useState(null);
   const [currentOffers, setCurrentOffers] = useState(offers);
   const [sortBy, setSortBy] = useState("hot"); // "hot" | "price-asc" | "recent"
 
@@ -27,7 +28,7 @@ export default function HomeClient({ offers }) {
     }
   }, []);
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault();
     setSubscribeError("");
     
@@ -45,12 +46,31 @@ export default function HomeClient({ offers }) {
 
     setSubscribeStatus("loading");
 
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: subscribeEmail }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubscribeError(data.error || "Ocurrió un error al suscribirte.");
+        setSubscribeStatus("error");
+        return;
+      }
+
       setSubscribeStatus("success");
       if (typeof window !== "undefined") {
         localStorage.setItem("promoadictos_subscribed", "true");
       }
-    }, 1200);
+    } catch (error) {
+      setSubscribeError("Error de conexión. Intenta nuevamente.");
+      setSubscribeStatus("error");
+    }
   };
 
   // ── MODAL HISTORIAL DE PRECIOS ──────────────────
@@ -270,6 +290,9 @@ export default function HomeClient({ offers }) {
     if (category) {
       result = result.filter((o) => o.category === category);
     }
+    if (brand) {
+      result = result.filter((o) => o.brand === brand);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -301,7 +324,7 @@ export default function HomeClient({ offers }) {
     });
 
     return result;
-  }, [currentOffers, search, category, sortBy]);
+  }, [currentOffers, search, category, brand, sortBy]);
 
   const dynamicCategories = useMemo(() => {
     const baseCategories = ["Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza"];
@@ -310,6 +333,11 @@ export default function HomeClient({ offers }) {
       cat => cat && cat !== "General" && cat !== "Otros" && !baseCategories.includes(cat)
     );
     return ["Todas", ...baseCategories, ...extraCategories, "Otros"];
+  }, [currentOffers]);
+
+  const dynamicBrands = useMemo(() => {
+    const activeBrands = Array.from(new Set(currentOffers.map(o => o.brand).filter(Boolean)));
+    return activeBrands.length > 0 ? ["Todas", ...activeBrands] : [];
   }, [currentOffers]);
 
   // ── DYNAMIC SAVINGS METRICS ──────────────────
@@ -541,6 +569,35 @@ export default function HomeClient({ offers }) {
 
             {/* Category filter */}
             <CategoryFilter onFilter={setCategory} categories={dynamicCategories} />
+
+            {/* Brand filter */}
+            {dynamicBrands.length > 0 && (
+              <div style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--clr-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.75rem" }}>Filtrar por marca</span>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {dynamicBrands.map(b => (
+                    <button
+                      key={b}
+                      onClick={() => setBrand(b === "Todas" ? null : b)}
+                      style={{
+                        padding: "0.4rem 1rem",
+                        borderRadius: "2rem",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        background: (brand === b) || (b === "Todas" && !brand) ? "var(--clr-orange)" : "rgba(255,255,255,0.05)",
+                        color: (brand === b) || (b === "Todas" && !brand) ? "#fff" : "var(--clr-muted)",
+                        border: "1px solid",
+                        borderColor: (brand === b) || (b === "Todas" && !brand) ? "var(--clr-orange)" : "rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {filtered.length > 0 ? (
               <div className="offers-grid">

@@ -13,7 +13,7 @@ const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio"
 
 const EMPTY_FORM = {
   title: "", price: "", originalPrice: "", discount: "",
-  imageUrl: "", affiliateUrl: "", category: "General", isFeatured: false,
+  imageUrl: "", affiliateUrl: "", category: "General", brand: "", isFeatured: false,
 };
 
 const EMPTY_COUPON_FORM = {
@@ -253,6 +253,7 @@ export default function AdminPage() {
       imageUrl: offer.imageUrl || "",
       affiliateUrl: offer.affiliateUrl || "",
       category: offer.category || "General",
+      brand: offer.brand || "",
       isFeatured: !!offer.isFeatured,
     });
     // Scroll suave hacia el formulario (ideal para móviles y pantallas reducidas)
@@ -1025,6 +1026,13 @@ export default function AdminPage() {
                         <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Brand */}
+                  <div>
+                    <label style={labelStyle}>Marca (Opcional)</label>
+                    <input name="brand" value={formData.brand} onChange={handleChange}
+                      placeholder="Ej: Samsung, Sony, Nike" style={inputStyle} />
                   </div>
 
                   {/* Image URL */}

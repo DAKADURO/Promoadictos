@@ -2,6 +2,61 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import nodemailer from "nodemailer";
+
+async function notifySubscribers(offer) {
+  try {
+    const subscribers = await prisma.subscriber.findMany({
+      where: { isActive: true },
+      select: { email: true }
+    });
+
+    if (subscribers.length === 0) return;
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn("SMTP credentials missing. Email notification skipped.");
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: process.env.SMTP_PORT || 587,
+      secure: process.env.SMTP_SECURE === "true",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const emails = subscribers.map(sub => sub.email).join(",");
+    
+    const mailOptions = {
+      from: `"Promoadictos" <${process.env.SMTP_USER}>`,
+      bcc: emails,
+      subject: `¡Nueva Oferta: ${offer.title}! 🎉`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+          <h1 style="color: #E94B5E;">¡Nueva oferta en Promoadictos!</h1>
+          <p style="font-size: 16px; color: #555;">Hemos encontrado un excelente descuento para ti:</p>
+          ${offer.imageUrl ? `<img src="${offer.imageUrl}" alt="${offer.title}" style="max-width: 100%; border-radius: 10px; margin: 20px 0;" />` : ''}
+          <h2 style="color: #333;">${offer.title}</h2>
+          <p style="font-size: 18px;">
+            <strong style="color: #E94B5E; font-size: 24px;">$${offer.price}</strong> 
+            ${offer.originalPrice ? `<span style="text-decoration: line-through; color: #999; margin-left: 10px;">$${offer.originalPrice}</span>` : ""}
+          </p>
+          <p style="margin-top: 30px;">
+            <a href="${offer.affiliateUrl}" style="background-color: #E94B5E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Ver Oferta</a>
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending newsletter:", error);
+  }
+}
+
 
 export async function GET() {
   try {
@@ -90,9 +145,14 @@ export async function POST(req) {
         imageUrl: data.imageUrl,
         affiliateUrl: data.affiliateUrl,
         category: data.category,
+        brand: data.brand || null,
         isFeatured: data.isFeatured || false,
       },
     });
+
+    // Notificar a los suscriptores en segundo plano (sin await para no bloquear la respuesta)
+    notifySubscribers(offer);
+
     revalidatePath("/");
     return NextResponse.json(offer);
   } catch (error) {

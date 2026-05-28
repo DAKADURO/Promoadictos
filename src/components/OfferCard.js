@@ -3,7 +3,7 @@ import { ExternalLink, TrendingDown, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function OfferCard({ offer, index = 0, onOpenModal }) {
-  const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, isFeatured } = offer;
+  const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, brand, isFeatured } = offer;
 
   const savings = originalPrice ? originalPrice - price : 0;
   const isHotDeal = discount && discount >= 30;
@@ -49,9 +49,16 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
 
       {/* Body */}
       <div className="card-body">
-        <div className="card-cat">
-          <span className="card-cat-dot" />
-          {category}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+          <div className="card-cat" style={{ marginBottom: 0 }}>
+            <span className="card-cat-dot" />
+            {category}
+          </div>
+          {brand && (
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "rgba(255,255,255,0.05)", padding: "0.15rem 0.4rem", borderRadius: "0.25rem" }}>
+              {brand}
+            </span>
+          )}
         </div>
 
         <h2 className="card-title">{title}</h2>
