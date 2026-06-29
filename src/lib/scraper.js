@@ -501,7 +501,6 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
           console.error("API error while fetching featured item from social page:", apiErr);
         }
       }
-    }
 
       // 3. Fallback: deep scan all components in the state
       if (!details.title) {
