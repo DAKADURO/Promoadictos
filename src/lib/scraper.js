@@ -121,42 +121,49 @@ function findFeaturedProductId(obj) {
   return null;
 }
 
-// Recursively find the exact highlighted recommended product details from the state polycard
-function findFeaturedProductDetails(obj) {
-  if (!obj || typeof obj !== "object") return null;
+function findAllProductDetails(obj, products = []) {
+  if (!obj || typeof obj !== "object") return products;
 
   if (Array.isArray(obj.polycards) && obj.polycards.length > 0) {
-    const firstCard = obj.polycards[0];
-    const details = { title: "", price: null, originalPrice: null, discount: null, categoryId: null };
-
-    if (firstCard.metadata && firstCard.metadata.category_id) {
-      details.categoryId = firstCard.metadata.category_id;
-    }
-
-    if (Array.isArray(firstCard.components)) {
-      for (const comp of firstCard.components) {
-        if (comp.type === "title" && comp.title?.text) {
-          details.title = comp.title.text;
-        }
-        if (comp.type === "price" && comp.price) {
-          details.price = comp.price.current_price?.value || null;
-          details.originalPrice = comp.price.previous_price?.value || null;
-          details.discount = comp.price.discount?.value || null;
+    for (const card of obj.polycards) {
+      const details = { title: "", price: null, originalPrice: null, discount: null, categoryId: null, id: null };
+      if (card.metadata) {
+        if (card.metadata.category_id) details.categoryId = card.metadata.category_id;
+        if (card.metadata.id) details.id = card.metadata.id;
+      }
+      if (Array.isArray(card.components)) {
+        for (const comp of card.components) {
+          if (comp.type === "title" && comp.title?.text) details.title = comp.title.text;
+          if (comp.type === "price" && comp.price) {
+            details.price = comp.price.current_price?.value || null;
+            details.originalPrice = comp.price.previous_price?.value || null;
+            details.discount = comp.price.discount?.value || null;
+          }
         }
       }
-    }
-
-    if (details.title || details.price) {
-      return details;
+      if (details.title || details.price) {
+        products.push(details);
+      }
     }
   }
 
   for (const key of Object.keys(obj)) {
-    const details = findFeaturedProductDetails(obj[key]);
-    if (details) return details;
+    findAllProductDetails(obj[key], products);
   }
 
-  return null;
+  return products;
+}
+
+function getSimilarity(target, candidate) {
+  if (!target || !candidate) return 0;
+  const targetWords = target.toLowerCase().split(/[\s,.-]+/).filter(w => w.length > 2);
+  if (targetWords.length === 0) return 0;
+  const candidateLower = candidate.toLowerCase();
+  let matches = 0;
+  for (const w of targetWords) {
+    if (candidateLower.includes(w)) matches++;
+  }
+  return matches / targetWords.length;
 }
 
 // Fetch category path from root from the official Mercado Libre categories API
@@ -403,7 +410,7 @@ function mapMercadoLibreCategory(path) {
  * resolves redirection, extracts target attributes (price, originalPrice, etc.),
  * and returns details.
  */
-export async function scrapeProduct(targetUrl) {
+export async function scrapeProduct(targetUrl, expectedTitle = null) {
   if (!targetUrl) {
     throw new Error("Missing url parameter");
   }
@@ -434,46 +441,67 @@ export async function scrapeProduct(targetUrl) {
     let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl, categoryId: null, brand: "" };
 
     if (state) {
-      // 1. Try to extract details directly from the first polycard in the state (fastest, 100% accurate)
-      const localDetails = findFeaturedProductDetails(state);
-      if (localDetails && localDetails.title) {
-        console.log("Extracted featured product details locally from polycard:", localDetails.title);
-        details.title = localDetails.title;
-        details.price = localDetails.price;
-        details.originalPrice = localDetails.originalPrice;
-        details.discount = localDetails.discount;
-        details.categoryId = localDetails.categoryId;
-      } else {
-        // 2. Fallback: try to find the exact highlighted product ID to get perfect data from the official API
-        const featuredId = findFeaturedProductId(state);
-        if (featuredId) {
-          console.log("Found featured product ID on social page, fetching from API:", featuredId);
-          try {
-            const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
-            if (apiRes.ok) {
-              const item = await apiRes.json();
-              details.title = item.title;
-              details.price = item.price;
-              details.originalPrice = item.original_price || null;
-              details.categoryId = item.category_id || null;
-              if (details.originalPrice && details.originalPrice > details.price) {
-                details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
-              }
-              if (item.pictures && item.pictures.length > 0) {
-                details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
-              }
-              if (item.attributes && Array.isArray(item.attributes)) {
-                const brandAttr = item.attributes.find(a => a.id === "BRAND");
-                if (brandAttr && brandAttr.value_name) {
-                  details.brand = brandAttr.value_name;
-                }
-              }
+      const allProducts = findAllProductDetails(state);
+      let bestProduct = null;
+      let featuredId = null;
+
+      if (allProducts.length > 0) {
+        if (expectedTitle) {
+          let maxScore = -1;
+          for (const p of allProducts) {
+            const score = getSimilarity(expectedTitle, p.title);
+            if (score > maxScore) {
+              maxScore = score;
+              bestProduct = p;
             }
-          } catch (apiErr) {
-            console.error("API error while fetching featured item from social page:", apiErr);
           }
+          if (maxScore < 0.2) {
+             console.warn(`Low title match (${maxScore}) for expected title: ${expectedTitle}`);
+          }
+        } else {
+          bestProduct = allProducts[0];
         }
       }
+
+      if (bestProduct && bestProduct.title) {
+        console.log("Extracted product details locally from polycard:", bestProduct.title);
+        details.title = bestProduct.title;
+        details.price = bestProduct.price;
+        details.originalPrice = bestProduct.originalPrice;
+        details.discount = bestProduct.discount;
+        details.categoryId = bestProduct.categoryId;
+        featuredId = bestProduct.id;
+      } else {
+        featuredId = findFeaturedProductId(state);
+      }
+
+      if (featuredId) {
+        try {
+          const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
+          if (apiRes.ok) {
+            const item = await apiRes.json();
+            if (!details.title) details.title = item.title;
+            if (!details.price) details.price = item.price;
+            if (!details.originalPrice) details.originalPrice = item.original_price || null;
+            if (!details.categoryId) details.categoryId = item.category_id || null;
+            if (details.originalPrice && details.originalPrice > details.price && !details.discount) {
+              details.discount = Math.round(((details.originalPrice - details.price) / details.originalPrice) * 100);
+            }
+            if (item.pictures && item.pictures.length > 0) {
+              details.imageUrl = item.pictures[0].secure_url || item.pictures[0].url;
+            }
+            if (item.attributes && Array.isArray(item.attributes)) {
+              const brandAttr = item.attributes.find(a => a.id === "BRAND");
+              if (brandAttr && brandAttr.value_name) {
+                details.brand = brandAttr.value_name;
+              }
+            }
+          }
+        } catch (apiErr) {
+          console.error("API error while fetching featured item from social page:", apiErr);
+        }
+      }
+    }
 
       // 3. Fallback: deep scan all components in the state
       if (!details.title) {

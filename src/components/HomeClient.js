@@ -934,7 +934,7 @@ export default function HomeClient({ offers }) {
                 <div style={{
                   fontSize: "0.8rem",
                   fontWeight: 700,
-                  color: selectedOffer.affiliateUrl.includes("mercadolibre") ? "#FFE600" : "#FF9900",
+                  color: (selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "#FFE600" : "#FF9900",
                   background: "rgba(255, 255, 255, 0.03)",
                   border: "1px solid rgba(255, 255, 255, 0.05)",
                   padding: "0.35rem 0.85rem",
@@ -947,9 +947,9 @@ export default function HomeClient({ offers }) {
                     width: "6px",
                     height: "6px",
                     borderRadius: "50%",
-                    background: selectedOffer.affiliateUrl.includes("mercadolibre") ? "#FFE600" : "#FF9900",
+                    background: (selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "#FFE600" : "#FF9900",
                   }} />
-                  {selectedOffer.affiliateUrl.includes("mercadolibre") ? "Mercado Libre" : "Amazon"}
+                  {(selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "Mercado Libre" : "Amazon"}
                 </div>
               </div>
 
@@ -1127,7 +1127,7 @@ export default function HomeClient({ offers }) {
                   className="price-modal-btn"
                 >
                   <ShoppingBag size={18} strokeWidth={2.5} />
-                  <span>Comprar ahora en {selectedOffer.affiliateUrl.includes("mercadolibre") ? "Mercado Libre" : "Amazon"}</span>
+                  <span>Comprar ahora en {(selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "Mercado Libre" : "Amazon"}</span>
                 </a>
               </div>
             </div>

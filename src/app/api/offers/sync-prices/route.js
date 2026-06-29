@@ -53,9 +53,29 @@ export async function GET(req) {
         }
 
         // Scrape the product details
-        const scraped = await scrapeProduct(offer.affiliateUrl);
+        const scraped = await scrapeProduct(offer.affiliateUrl, offer.title);
 
         if (scraped.success && scraped.price !== null && scraped.price !== undefined) {
+          // Safety check: ensure the scraped product is reasonably similar to the original offer
+          const getSimilarity = (t1, t2) => {
+            if (!t1 || !t2) return 0;
+            const words1 = t1.toLowerCase().split(/[\s,.-]+/).filter(w => w.length > 2);
+            if (words1.length === 0) return 0;
+            const w2 = t2.toLowerCase();
+            return words1.filter(w => w2.includes(w)).length / words1.length;
+          };
+
+          const similarity = getSimilarity(offer.title, scraped.title);
+          if (similarity < 0.3) {
+            console.log(`Title mismatch for offer ${offer.id}: Original="${offer.title}", Scraped="${scraped.title}". Skipping price update.`);
+            results.push({
+              id: offer.id,
+              title: offer.title,
+              status: "skipped",
+              reason: `Title mismatch (scraped: ${scraped.title})`
+            });
+            continue;
+          }
           const oldPrice = offer.price;
           const newPrice = scraped.price;
           const priceChanged = oldPrice !== newPrice;
