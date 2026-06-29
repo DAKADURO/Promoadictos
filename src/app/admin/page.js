@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Plus, Trash2, Star,
   LogOut, Package, TrendingUp, DollarSign, CheckCircle, RefreshCw,
-  Edit3, Search, X, ChevronLeft, ChevronRight, Ticket, Clock, Calendar
+  Edit3, Search, X, ChevronLeft, ChevronRight, Ticket, Clock, Calendar,
+  AlertTriangle, Link, ExternalLink, Loader
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar";
@@ -69,6 +70,11 @@ export default function AdminPage() {
   const [couponSelectedStoreFilter, setCouponSelectedStoreFilter] = useState("Todas");
   const [couponSelectedCategoryFilter, setCouponSelectedCategoryFilter] = useState("Todas");
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
+
+  // Estados para Links Rotos
+  const [brokenLinks, setBrokenLinks] = useState(null); // null = no checkeado aún
+  const [checkingLinks, setCheckingLinks] = useState(false);
+  const [deletingBrokenIds, setDeletingBrokenIds] = useState(new Set());
 
   const isTitleDuplicate = useMemo(() => {
     if (!formData.title) return false;
@@ -157,6 +163,66 @@ export default function AdminPage() {
       showToast("Error de conexión al sincronizar", "error");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleCheckBrokenLinks = async () => {
+    setCheckingLinks(true);
+    setBrokenLinks(null);
+    showToast("🔍 Verificando todos los links...", "success");
+    try {
+      const res = await fetch("/api/offers/check-links");
+      const data = await res.json();
+      if (res.ok) {
+        setBrokenLinks(data);
+        if (data.brokenCount === 0) {
+          showToast(`✅ ¡Perfecto! Todos los ${data.total} links funcionan correctamente.`);
+        } else {
+          showToast(`⚠️ Encontré ${data.brokenCount} links rotos de ${data.total} total.`, "error");
+        }
+      } else {
+        showToast(data?.error || "Error al verificar links", "error");
+      }
+    } catch (err) {
+      showToast("Error de conexión al verificar links", "error");
+    } finally {
+      setCheckingLinks(false);
+    }
+  };
+
+  const handleDeleteBrokenOffer = async (id) => {
+    if (!confirm("¿Eliminar esta oferta con link roto?")) return;
+    setDeletingBrokenIds(prev => new Set([...prev, id]));
+    try {
+      await fetch(`/api/offers?id=${id}`, { method: "DELETE" });
+      setBrokenLinks(prev => ({
+        ...prev,
+        broken: prev.broken.filter(o => o.id !== id),
+        brokenCount: prev.brokenCount - 1,
+      }));
+      setOffers(prev => prev.filter(o => o.id !== id));
+      showToast("Oferta eliminada.");
+    } catch {
+      showToast("Error al eliminar", "error");
+    } finally {
+      setDeletingBrokenIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }
+  };
+
+  const handleDeleteAllBroken = async () => {
+    if (!brokenLinks?.broken?.length) return;
+    if (!confirm(`¿Eliminar las ${brokenLinks.brokenCount} ofertas con links rotos? Esta acción no se puede deshacer.`)) return;
+    const ids = brokenLinks.broken.map(o => o.id);
+    setDeletingBrokenIds(new Set(ids));
+    try {
+      await Promise.all(ids.map(id => fetch(`/api/offers?id=${id}`, { method: "DELETE" })));
+      setBrokenLinks(prev => ({ ...prev, broken: [], brokenCount: 0 }));
+      await fetchOffers();
+      showToast(`✅ Se eliminaron ${ids.length} ofertas con links rotos.`);
+    } catch {
+      showToast("Error al eliminar ofertas", "error");
+    } finally {
+      setDeletingBrokenIds(new Set());
     }
   };
 
@@ -910,6 +976,40 @@ export default function AdminPage() {
             >
               <Ticket size={16} />
               Cupones ({coupons.length})
+            </button>
+            <button
+              onClick={() => { setActiveTab("broken"); }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.6rem",
+                padding: "0.6rem 1.5rem",
+                borderRadius: "0.75rem",
+                border: "none",
+                background: activeTab === "broken" ? "#b91c1c" : "transparent",
+                color: activeTab === "broken" ? "#fff" : "#f87171",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: activeTab === "broken" ? "0 4px 12px rgba(185,28,28,0.35)" : "none",
+                position: "relative",
+              }}
+            >
+              <AlertTriangle size={16} />
+              Links Rotos
+              {brokenLinks?.brokenCount > 0 && (
+                <span style={{
+                  background: "#ef4444",
+                  color: "#fff",
+                  borderRadius: "999px",
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  padding: "0.1rem 0.45rem",
+                  lineHeight: 1.4,
+                  boxShadow: "0 2px 6px rgba(239,68,68,0.4)",
+                }}>{brokenLinks.brokenCount}</span>
+              )}
             </button>
           </div>
 
@@ -1933,6 +2033,241 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ── BROKEN LINKS TAB ── */}
+          {activeTab === "broken" && (
+            <div style={{ maxWidth: "900px" }}>
+              {/* Header card */}
+              <div style={{
+                background: "rgba(185,28,28,0.08)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                borderRadius: "1.25rem",
+                padding: "1.5rem",
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "1rem",
+                flexWrap: "wrap",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{
+                    width: "48px", height: "48px", borderRadius: "1rem",
+                    background: "rgba(239,68,68,0.15)", display: "flex",
+                    alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <Link size={22} color="#f87171" />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#fff", marginBottom: "0.2rem" }}>
+                      Verificador de Links
+                    </h2>
+                    <p style={{ fontSize: "0.82rem", color: "var(--clr-muted)" }}>
+                      Detecta ofertas con links caducados o eliminados de Mercado Libre para limpiar tu catálogo.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCheckBrokenLinks}
+                  disabled={checkingLinks}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "0.5rem",
+                    padding: "0.7rem 1.4rem", borderRadius: "0.85rem",
+                    background: checkingLinks ? "rgba(255,255,255,0.03)" : "rgba(239,68,68,0.15)",
+                    border: checkingLinks ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(239,68,68,0.4)",
+                    color: checkingLinks ? "var(--clr-muted)" : "#f87171",
+                    cursor: checkingLinks ? "not-allowed" : "pointer",
+                    fontSize: "0.88rem", fontWeight: 700, transition: "all 0.3s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {checkingLinks
+                    ? <><Loader size={15} style={{ animation: "spin 1s linear infinite" }} /> Verificando...</>
+                    : <><Search size={15} /> Verificar ahora</>}
+                </button>
+              </div>
+
+              {/* Not checked yet */}
+              {brokenLinks === null && !checkingLinks && (
+                <div style={{
+                  textAlign: "center", padding: "4rem 2rem",
+                  background: "rgba(14,19,38,0.4)", borderRadius: "1.25rem",
+                  border: "1px dashed rgba(255,255,255,0.07)",
+                }}>
+                  <AlertTriangle size={40} color="rgba(255,255,255,0.15)" style={{ marginBottom: "1rem" }} />
+                  <p style={{ color: "var(--clr-muted)", fontSize: "0.95rem" }}>
+                    Haz clic en <strong style={{ color: "#f87171" }}>"Verificar ahora"</strong> para escanear todos tus links de afiliado.
+                  </p>
+                </div>
+              )}
+
+              {/* Checking spinner */}
+              {checkingLinks && (
+                <div style={{
+                  textAlign: "center", padding: "4rem 2rem",
+                  background: "rgba(14,19,38,0.4)", borderRadius: "1.25rem",
+                  border: "1px solid rgba(255,255,255,0.04)",
+                }}>
+                  <Loader size={36} color="#f87171" style={{ animation: "spin 1s linear infinite", marginBottom: "1rem" }} />
+                  <p style={{ color: "var(--clr-muted)", fontSize: "0.9rem" }}>
+                    Revisando {offers.length} links... esto puede tardar un minuto.
+                  </p>
+                </div>
+              )}
+
+              {/* Results */}
+              {brokenLinks !== null && !checkingLinks && (
+                <div>
+                  {/* Summary bar */}
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem",
+                  }}>
+                    <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                      <span style={{
+                        background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
+                        color: "#34d399", padding: "0.35rem 0.85rem", borderRadius: "999px",
+                        fontSize: "0.8rem", fontWeight: 700,
+                      }}>
+                        ✅ {brokenLinks.total - brokenLinks.brokenCount} funcionando
+                      </span>
+                      {brokenLinks.brokenCount > 0 && (
+                        <span style={{
+                          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
+                          color: "#f87171", padding: "0.35rem 0.85rem", borderRadius: "999px",
+                          fontSize: "0.8rem", fontWeight: 700,
+                        }}>
+                          ⚠️ {brokenLinks.brokenCount} rotos
+                        </span>
+                      )}
+                    </div>
+                    {brokenLinks.brokenCount > 1 && (
+                      <button
+                        onClick={handleDeleteAllBroken}
+                        disabled={deletingBrokenIds.size > 0}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "0.4rem",
+                          padding: "0.5rem 1rem", borderRadius: "0.65rem",
+                          background: "rgba(185,28,28,0.2)", border: "1px solid rgba(239,68,68,0.3)",
+                          color: "#f87171", cursor: "pointer", fontSize: "0.82rem", fontWeight: 700,
+                        }}
+                      >
+                        <Trash2 size={13} /> Eliminar todos los rotos
+                      </button>
+                    )}
+                  </div>
+
+                  {brokenLinks.brokenCount === 0 ? (
+                    <div style={{
+                      textAlign: "center", padding: "3rem 2rem",
+                      background: "rgba(16,185,129,0.06)", borderRadius: "1.25rem",
+                      border: "1px solid rgba(16,185,129,0.15)",
+                    }}>
+                      <CheckCircle size={44} color="#34d399" style={{ marginBottom: "0.75rem" }} />
+                      <p style={{ fontSize: "1rem", fontWeight: 700, color: "#34d399", marginBottom: "0.3rem" }}>
+                        ¡Todo limpio!
+                      </p>
+                      <p style={{ color: "var(--clr-muted)", fontSize: "0.85rem" }}>
+                        Los {brokenLinks.total} links de tus ofertas funcionan correctamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {brokenLinks.broken.map((offer) => (
+                        <div
+                          key={offer.id}
+                          className="fade-in-item"
+                          style={{
+                            background: "rgba(185,28,28,0.07)",
+                            border: "1px solid rgba(239,68,68,0.2)",
+                            borderRadius: "1rem",
+                            padding: "1rem 1.25rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "1rem",
+                          }}
+                        >
+                          {/* Thumbnail */}
+                          {offer.imageUrl ? (
+                            <img
+                              src={offer.imageUrl}
+                              alt={offer.title}
+                              style={{
+                                width: "52px", height: "52px", borderRadius: "0.65rem",
+                                objectFit: "cover", flexShrink: 0,
+                                border: "1px solid rgba(255,255,255,0.07)",
+                                opacity: 0.7,
+                              }}
+                            />
+                          ) : (
+                            <div style={{
+                              width: "52px", height: "52px", borderRadius: "0.65rem",
+                              background: "rgba(255,255,255,0.04)", flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                            }}>
+                              <AlertTriangle size={20} color="#f87171" />
+                            </div>
+                          )}
+
+                          {/* Info */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{
+                              fontSize: "0.88rem", fontWeight: 700, color: "#fff",
+                              marginBottom: "0.25rem",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>{offer.title}</p>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                              <span style={{
+                                background: "rgba(239,68,68,0.15)", color: "#f87171",
+                                border: "1px solid rgba(239,68,68,0.25)",
+                                padding: "0.15rem 0.55rem", borderRadius: "0.4rem",
+                                fontSize: "0.72rem", fontWeight: 700,
+                              }}>
+                                ⚠ {offer.reason}
+                              </span>
+                              <a
+                                href={offer.affiliateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "var(--clr-muted)", fontSize: "0.72rem" }}
+                              >
+                                <ExternalLink size={11} /> Ver link
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Price */}
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--clr-muted)" }}>
+                              ${offer.price?.toLocaleString("es-MX")}
+                            </p>
+                          </div>
+
+                          {/* Delete button */}
+                          <button
+                            onClick={() => handleDeleteBrokenOffer(offer.id)}
+                            disabled={deletingBrokenIds.has(offer.id)}
+                            style={{
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              width: "36px", height: "36px", borderRadius: "0.65rem",
+                              background: "rgba(185,28,28,0.15)", border: "1px solid rgba(239,68,68,0.25)",
+                              color: "#f87171", cursor: deletingBrokenIds.has(offer.id) ? "not-allowed" : "pointer",
+                              flexShrink: 0, transition: "all 0.2s",
+                            }}
+                            title="Eliminar oferta"
+                          >
+                            {deletingBrokenIds.has(offer.id)
+                              ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} />
+                              : <Trash2 size={14} />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
