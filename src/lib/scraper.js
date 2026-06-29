@@ -7,10 +7,19 @@ async function resolveUrl(url) {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       }
     });
+
+    if (res.status === 404) {
+      throw new Error("Link expired or not found");
+    }
+
+    if (res.url === url) {
+      throw new Error("Link did not redirect (may be expired)");
+    }
+
     return res.url;
   } catch (err) {
-    console.error("Resolve URL error:", err);
-    return url;
+    console.error("Resolve URL error:", err.message);
+    throw new Error(`Failed to resolve meli.la shortlink: ${err.message}`);
   }
 }
 
@@ -567,5 +576,5 @@ export async function scrapeProduct(targetUrl) {
     };
   }
 
-  throw new Error("Unsupported Mercado Libre URL format");
+  throw new Error(`Unsupported Mercado Libre URL format: ${resolvedUrl}`);
 }
