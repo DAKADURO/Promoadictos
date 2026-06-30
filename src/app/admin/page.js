@@ -238,6 +238,7 @@ export default function AdminPage() {
         triggerAutoImport(autoUrl);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-calculate discount when price or originalPrice changes
@@ -2098,7 +2099,7 @@ export default function AdminPage() {
                 }}>
                   <AlertTriangle size={40} color="rgba(255,255,255,0.15)" style={{ marginBottom: "1rem" }} />
                   <p style={{ color: "var(--clr-muted)", fontSize: "0.95rem" }}>
-                    Haz clic en <strong style={{ color: "#f87171" }}>"Verificar ahora"</strong> para escanear todos tus links de afiliado.
+                    Haz clic en <strong style={{ color: "#f87171" }}>&quot;Verificar ahora&quot;</strong> para escanear todos tus links de afiliado.
                   </p>
                 </div>
               )}

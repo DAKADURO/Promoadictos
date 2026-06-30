@@ -24,6 +24,15 @@ model Offer {
   isFeatured    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  priceHistories PriceHistory[]
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  offerId   String
+  price     Float
+  createdAt DateTime @default(now())
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
 }
 
 model Coupon {

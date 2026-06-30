@@ -1,5 +1,6 @@
 import "./globals.css";
 import Script from "next/script";
+import { Providers } from "@/components/Providers";
 
 export const metadata = {
   title: "PromoAdictos | Las Mejores Ofertas y Descuentos de México",
@@ -84,7 +85,9 @@ export default function RootLayout({ children }) {
         )}
       </head>
       <body>
-        <main>{children}</main>
+        <Providers>
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   );

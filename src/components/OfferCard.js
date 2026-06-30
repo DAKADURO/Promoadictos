@@ -1,6 +1,7 @@
 "use client";
 import { ExternalLink, TrendingDown, Flame } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export default function OfferCard({ offer, index = 0, onOpenModal }) {
   const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, brand, isFeatured } = offer;
@@ -25,11 +26,14 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
     >
       {/* Image */}
       <div className="card-img-wrap">
-        <img
+        <Image
           src={imageUrl}
           alt={title}
+          width={400}
+          height={300}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
           loading={index < 2 ? "eager" : "lazy"}
-          fetchPriority={index < 2 ? "high" : "low"}
+          priority={index < 2}
           decoding="async"
         />
         {discount && (
@@ -49,13 +53,13 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
 
       {/* Body */}
       <div className="card-body">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+        <div className="card-meta-row">
           <div className="card-cat" style={{ marginBottom: 0 }}>
             <span className="card-cat-dot" />
             {category}
           </div>
           {brand && (
-            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--clr-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "rgba(255,255,255,0.05)", padding: "0.15rem 0.4rem", borderRadius: "0.25rem" }}>
+            <span className="card-brand">
               {brand}
             </span>
           )}

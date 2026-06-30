@@ -2,17 +2,26 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { scrapeProduct } from "@/lib/scraper";
+import { scrapeProduct, getSimilarity } from "@/lib/scraper";
+
+// Maximum concurrent scraping requests to avoid rate-limiting
+const CONCURRENCY_LIMIT = 5;
 
 export async function GET(req) {
   // 1. Authentication Check (Hybrid: Session or Cron Secret)
   const session = await auth();
-  
+
   if (!session) {
     const { searchParams } = new URL(req.url);
     const secretParam = searchParams.get("secret");
-    const configuredSecret = process.env.CRON_SECRET || "promo_adictos_sync_secret_2026_x1";
-    
+    // FIX #1: Never fall back to a hardcoded secret — must be set in .env
+    const configuredSecret = process.env.CRON_SECRET;
+
+    if (!configuredSecret) {
+      console.error("CRON_SECRET is not set in environment variables.");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    }
+
     if (!secretParam || secretParam !== configuredSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -35,124 +44,24 @@ export async function GET(req) {
       });
     }
 
-    const results = [];
-    let updatedCount = 0;
-    let errorCount = 0;
+    // FIX #3 & N5: Process offers in parallel with a true concurrency queue.
+    const allResults = await withConcurrency(offers, CONCURRENCY_LIMIT, processOffer);
 
-    // 3. Process each offer
-    for (const offer of offers) {
-      try {
-        if (!offer.affiliateUrl) {
-          results.push({
-            id: offer.id,
-            title: offer.title,
-            status: "skipped",
-            reason: "No affiliate URL"
-          });
-          continue;
-        }
+    const updatedCount = allResults.filter((r) => r.status === "updated").length;
+    const errorCount = allResults.filter((r) => r.status === "failed").length;
 
-        // Scrape the product details
-        const scraped = await scrapeProduct(offer.affiliateUrl, offer.title);
-
-        if (scraped.success && scraped.price !== null && scraped.price !== undefined) {
-          // Safety check: ensure the scraped product is reasonably similar to the original offer
-          const getSimilarity = (t1, t2) => {
-            if (!t1 || !t2) return 0;
-            const words1 = t1.toLowerCase().split(/[\s,.-]+/).filter(w => w.length > 2);
-            if (words1.length === 0) return 0;
-            const w2 = t2.toLowerCase();
-            return words1.filter(w => w2.includes(w)).length / words1.length;
-          };
-
-          const similarity = getSimilarity(offer.title, scraped.title);
-          if (similarity < 0.3) {
-            console.log(`Title mismatch for offer ${offer.id}: Original="${offer.title}", Scraped="${scraped.title}". Skipping price update.`);
-            results.push({
-              id: offer.id,
-              title: offer.title,
-              status: "skipped",
-              reason: `Title mismatch (scraped: ${scraped.title})`
-            });
-            continue;
-          }
-          const oldPrice = offer.price;
-          const newPrice = scraped.price;
-          const priceChanged = oldPrice !== newPrice;
-
-          // Determine original price and discount
-          const originalPrice = scraped.originalPrice || offer.originalPrice;
-          let discount = scraped.discount || offer.discount;
-
-          // Recalculate discount if price changed or is present
-          if (originalPrice && originalPrice > newPrice) {
-            discount = Math.round(((originalPrice - newPrice) / originalPrice) * 100);
-          } else {
-            discount = null; // Clear discount if price isn't lower than original
-          }
-
-          const originalPriceChanged = originalPrice !== offer.originalPrice;
-          const discountChanged = discount !== offer.discount;
-
-          if (priceChanged || originalPriceChanged || discountChanged) {
-            // Update in database
-            await prisma.offer.update({
-              where: { id: offer.id },
-              data: {
-                price: newPrice,
-                originalPrice: originalPrice,
-                discount: discount
-              }
-            });
-
-            updatedCount++;
-            results.push({
-              id: offer.id,
-              title: offer.title,
-              status: "updated",
-              oldPrice,
-              newPrice,
-              originalPrice,
-              discount
-            });
-          } else {
-            results.push({
-              id: offer.id,
-              title: offer.title,
-              status: "no_change",
-              price: newPrice
-            });
-          }
-        } else {
-          results.push({
-            id: offer.id,
-            title: offer.title,
-            status: "failed",
-            reason: "Invalid price scraped"
-          });
-          errorCount++;
-        }
-      } catch (err) {
-        console.error(`Error syncing offer ${offer.id} (${offer.title}):`, err.message);
-        results.push({
-          id: offer.id,
-          title: offer.title,
-          status: "failed",
-          reason: err.message
-        });
-        errorCount++;
-      }
-    }
-
-    // 4. Revalidate home page cache
+    // 4. Revalidate all user-facing page caches
+    // FIX #7: Revalidate every page that displays offer data, not just home.
     revalidatePath("/");
+    revalidatePath("/cupones");
+    revalidatePath("/admin");
 
     return NextResponse.json({
       success: true,
       processed: offers.length,
       updated: updatedCount,
       errors: errorCount,
-      results
+      results: allResults
     });
 
   } catch (error) {
@@ -162,5 +71,97 @@ export async function GET(req) {
       error: "Internal server error during price synchronization",
       details: error.message
     }, { status: 500 });
+  }
+}
+
+/**
+ * Concurrency queue: runs up to `limit` promises simultaneously.
+ */
+async function withConcurrency(items, limit, fn) {
+  const results = [];
+  const executing = [];
+  for (const item of items) {
+    const p = fn(item).then(r => { executing.splice(executing.indexOf(p), 1); return r; });
+    results.push(p);
+    executing.push(p);
+    if (executing.length >= limit) await Promise.race(executing);
+  }
+  return Promise.all(results);
+}
+
+/**
+ * Scrapes and evaluates a single offer. Returns a result object.
+ * Extracted from the main handler to keep it clean and testable.
+ */
+async function processOffer(offer) {
+  try {
+    if (!offer.affiliateUrl) {
+      return { id: offer.id, title: offer.title, status: "skipped", reason: "No affiliate URL" };
+    }
+
+    const scraped = await scrapeProduct(offer.affiliateUrl, offer.title);
+
+    if (scraped.success && scraped.price !== null && scraped.price !== undefined) {
+      // FIX #5: Use the canonical getSimilarity from scraper.js — no duplicate logic.
+      const similarity = getSimilarity(offer.title, scraped.title);
+      if (similarity < 0.3) {
+        console.log(
+          `Title mismatch for offer ${offer.id}: ` +
+          `Original="${offer.title}", Scraped="${scraped.title}". Skipping.`
+        );
+        return {
+          id: offer.id,
+          title: offer.title,
+          status: "skipped",
+          reason: `Title mismatch (scraped: ${scraped.title})`
+        };
+      }
+
+      const oldPrice = offer.price;
+      const newPrice = scraped.price;
+      const priceChanged = oldPrice !== newPrice;
+
+      // Determine original price and discount
+      const originalPrice = scraped.originalPrice || offer.originalPrice;
+      let discount;
+
+      // Recalculate discount if price changed or is present
+      if (originalPrice && originalPrice > newPrice) {
+        discount = Math.round(((originalPrice - newPrice) / originalPrice) * 100);
+      } else {
+        discount = null; // Clear discount if price isn't lower than original
+      }
+
+      const originalPriceChanged = originalPrice !== offer.originalPrice;
+      const discountChanged = discount !== offer.discount;
+
+      if (priceChanged || originalPriceChanged || discountChanged) {
+        await prisma.offer.update({
+          where: { id: offer.id },
+          data: { price: newPrice, originalPrice, discount }
+        });
+
+        // P1: Record price history if the actual price changed
+        if (priceChanged) {
+          await prisma.priceHistory.create({
+            data: {
+              offerId: offer.id,
+              price: newPrice
+            }
+          });
+        }
+
+        return { id: offer.id, title: offer.title, status: "updated", oldPrice, newPrice, originalPrice, discount };
+      }
+
+      return { id: offer.id, title: offer.title, status: "no_change", price: newPrice };
+
+    } else {
+      return { id: offer.id, title: offer.title, status: "failed", reason: "Invalid price scraped" };
+    }
+
+  } catch (err) {
+    console.error(`Error syncing offer ${offer.id} (${offer.title}):`, err.message);
+    return { id: offer.id, title: offer.title, status: "failed", reason: err.message };
   }
 }

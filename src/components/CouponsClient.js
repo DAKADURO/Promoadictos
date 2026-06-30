@@ -4,68 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Ticket, Tag, Copy, Check, ExternalLink, Calendar, Search, Sparkles, Clock, RefreshCw } from "lucide-react";
 
-const MOCK_COUPONS = [
-  {
-    id: "m1",
-    title: "Cupón de Bienvenida Mercado Libre",
-    code: "PROMO150",
-    discount: "$150 MXN",
-    description: "Obtén $150 MXN de descuento en tu primera compra en la app. Mínimo de compra $1,000 MXN.",
-    store: "Mercado Libre",
-    link: "https://www.mercadolibre.com.mx",
-    category: "General",
-    isFeatured: true,
-    expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
-  },
-  {
-    id: "a1",
-    title: "10% de Descuento en Amazon México",
-    code: "AMAZON10",
-    discount: "10% DTO",
-    description: "Ahorra 10% adicional en productos seleccionados de Tecnología y Hogar vendidos por Amazon.",
-    store: "Amazon",
-    link: "https://www.amazon.com.mx",
-    category: "Tecnología",
-    isFeatured: true,
-    expiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-  },
-  {
-    id: "al1",
-    title: "AliExpress Choice - Cupón Volcánico",
-    code: "ALI200",
-    discount: "$200 MXN",
-    description: "Aplica en pedidos Choice mayores a $600 MXN. Envío gratis incluido.",
-    store: "AliExpress",
-    link: "https://aliexpress.com",
-    category: "Tecnología",
-    isFeatured: false,
-    expiryDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days from now
-  },
-  {
-    id: "m2",
-    title: "Descuento en Moda y Calzado",
-    code: "MODAMELI",
-    discount: "15% DTO",
-    description: "Válido en la sección de Moda, Calzado y Accesorios en tiendas seleccionadas.",
-    store: "Mercado Libre",
-    link: "https://www.mercadolibre.com.mx",
-    category: "Moda",
-    isFeatured: false,
-    expiryDate: null,
-  },
-  {
-    id: "al2",
-    title: "Cupón AliExpress Todo el Sitio",
-    code: "ALINEW80",
-    discount: "$80 MXN",
-    description: "Obtén $80 MXN de descuento en tu primera compra en AliExpress sin mínimo.",
-    store: "AliExpress",
-    link: "https://aliexpress.com",
-    category: "General",
-    isFeatured: false,
-    expiryDate: null,
-  }
-];
+import { MOCK_COUPONS } from "@/lib/mockData";
 
 export default function CouponsClient({ initialCoupons = [] }) {
   const [coupons, setCoupons] = useState(initialCoupons);
@@ -102,10 +41,19 @@ export default function CouponsClient({ initialCoupons = [] }) {
 
   // Copy handler
   const handleCopy = (id, code) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(code);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code)
+        .then(() => {
+          setCopiedId(id);
+          setTimeout(() => setCopiedId(null), 2000);
+        })
+        .catch(err => {
+          console.error("Failed to copy text: ", err);
+          alert("No se pudo copiar el cupón. Por favor, intenta de nuevo.");
+        });
+    } else {
+      // Fallback for older browsers
+      alert(`Código: ${code}`);
     }
   };
 

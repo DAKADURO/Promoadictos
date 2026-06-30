@@ -58,15 +58,51 @@ async function notifySubscribers(offer) {
 }
 
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const offers = await prisma.offer.findMany({
-      orderBy: [
-        { isFeatured: "desc" },
-        { createdAt: "desc" },
-      ],
-    });
-    return NextResponse.json(offers);
+    const { searchParams } = new URL(req.url);
+    const page = searchParams.get("page");
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit"), 10) : 24;
+
+    if (page) {
+      const pageNum = parseInt(page, 10) || 1;
+      const skip = (pageNum - 1) * limit;
+
+      const offers = await prisma.offer.findMany({
+        orderBy: [
+          { isFeatured: "desc" },
+          { createdAt: "desc" },
+        ],
+        skip,
+        take: limit,
+        include: {
+          priceHistories: {
+            orderBy: { createdAt: "desc" },
+            take: 30
+          }
+        }
+      });
+
+      const total = await prisma.offer.count();
+      const hasMore = skip + offers.length < total;
+
+      return NextResponse.json({ offers, hasMore, total });
+    } else {
+      // Legacy support for admin dashboard which expects an array
+      const offers = await prisma.offer.findMany({
+        orderBy: [
+          { isFeatured: "desc" },
+          { createdAt: "desc" },
+        ],
+        include: {
+          priceHistories: {
+            orderBy: { createdAt: "desc" },
+            take: 30
+          }
+        }
+      });
+      return NextResponse.json(offers);
+    }
   } catch (error) {
     console.error("Prisma Error:", error);
     return NextResponse.json({ error: "Error fetching offers", details: error.message }, { status: 500 });
@@ -150,6 +186,14 @@ export async function POST(req) {
       },
     });
 
+    // P1: Create initial price history
+    await prisma.priceHistory.create({
+      data: {
+        offerId: offer.id,
+        price: data.price
+      }
+    });
+
     // Notificar a los suscriptores en segundo plano (sin await para no bloquear la respuesta)
     notifySubscribers(offer);
 
@@ -189,10 +233,22 @@ export async function PUT(req) {
       return NextResponse.json({ error: "Missing offer ID" }, { status: 400 });
     }
 
+    const existingOffer = await prisma.offer.findUnique({ where: { id }, select: { price: true } });
+
     const updatedOffer = await prisma.offer.update({
       where: { id },
       data: updateData,
     });
+
+    // P1: Add price history if price changed manually from admin
+    if (updateData.price !== undefined && existingOffer && existingOffer.price !== updateData.price) {
+      await prisma.priceHistory.create({
+        data: {
+          offerId: id,
+          price: updateData.price
+        }
+      });
+    }
     revalidatePath("/");
     return NextResponse.json(updatedOffer);
   } catch (error) {

@@ -154,7 +154,7 @@ function findAllProductDetails(obj, products = []) {
   return products;
 }
 
-function getSimilarity(target, candidate) {
+export function getSimilarity(target, candidate) {
   if (!target || !candidate) return 0;
   const targetWords = target.toLowerCase().split(/[\s,.-]+/).filter(w => w.length > 2);
   if (targetWords.length === 0) return 0;
@@ -183,181 +183,54 @@ async function getMercadoLibreCategoryPath(categoryId) {
   return { name: "", path: [] };
 }
 
+const CATEGORY_KEYWORDS = {
+  Gaming: [
+    "gaming", "gamer", "nintendo", "switch", "playstation", "xbox", "ps5", "ps4",
+    "consola", "videojuegos", "rtx", "ryzen", "tarjeta gráfica"
+  ],
+  Audio: [
+    "audifonos", "auriculares", "bluetooth", "bocina", "parlante", "soundcore",
+    "in-ear", "diadema", "microfono", "altavoz", "soundbar", "barra de sonido", "audio"
+  ],
+  Tecnología: [
+    "celular", "smartphone", "iphone", "galaxy", "laptop", "computación",
+    "computadora", "pantalla", "smart watch", "smartwatch", "reloj inteligente",
+    "cargador", "tablet", "kindle", "cámara", "gopro", "point", "hidrogel",
+    "procesador", "memoria ram", "disco duro", "ssd", "intel", "amd", "monitor",
+    "electrónica", "tecnología"
+  ],
+  Hogar: [
+    "hogar", "mueble", "jardín", "jardin", "sarten", "olla", "cocina", "licuadora",
+    "aspiradora", "colchon", "almohada", "sabanas", "vaso", "termo", "comedor",
+    "cuchillo", "herramientas", "foco", "led", "freidora", "cafetera",
+    "aire acondicionado", "ventilador", "herramienta", "decoración", "batería de cocina"
+  ],
+  Moda: [
+    "moda", "ropa", "calzado", "tenis", "playera", "pantalon", "sudadera",
+    "mochila", "vestido", "reloj de mano", "lentes", "gafas", "zapatos", "botas",
+    "camisa", "chaqueta", "abrigo", "bolso", "joyería"
+  ],
+  Deportes: [
+    "deporte", "balon", "mancuernas", "pesa", "bicicleta", "gym", "ejercicio",
+    "futbol", "basquetbol", "entrenamiento", "suplemento", "proteina", "fitness"
+  ],
+  Belleza: [
+    "maquillaje", "cosmetico", "cosmético", "skincare", "crema facial",
+    "protector solar", "bloqueador", "labial", "rimel", "máscara de pestañas",
+    "base de maquillaje", "serum", "sérum", "belleza", "cuidado personal",
+    "perfume", "locion", "loción", "fragancia"
+  ]
+};
+
 // Classify category intelligently based on title, category name, and entire path
 function classifyCategory(title, categoryName, categoryPath) {
   const pathStr = Array.isArray(categoryPath) ? categoryPath.join(" ") : "";
   const searchText = `${title} ${categoryName || ""} ${pathStr}`.toLowerCase();
 
-  // 1. Gaming
-  if (
-    searchText.includes("gaming") ||
-    searchText.includes("gamer") ||
-    searchText.includes("nintendo") ||
-    searchText.includes("switch") ||
-    searchText.includes("playstation") ||
-    searchText.includes("xbox") ||
-    searchText.includes("ps5") ||
-    searchText.includes("ps4") ||
-    searchText.includes("consola") ||
-    searchText.includes("videojuegos") ||
-    searchText.includes("rtx") ||
-    searchText.includes("ryzen") ||
-    searchText.includes("tarjeta gráfica")
-  ) {
-    return "Gaming";
-  }
-
-  // 2. Audio
-  if (
-    searchText.includes("audifonos") ||
-    searchText.includes("auriculares") ||
-    searchText.includes("bluetooth") ||
-    searchText.includes("bocina") ||
-    searchText.includes("parlante") ||
-    searchText.includes("soundcore") ||
-    searchText.includes("in-ear") ||
-    searchText.includes("diadema") ||
-    searchText.includes("microfono") ||
-    searchText.includes("altavoz") ||
-    searchText.includes("soundbar") ||
-    searchText.includes("barra de sonido") ||
-    searchText.includes("audio")
-  ) {
-    return "Audio";
-  }
-
-  // 3. Tecnología (General Tech/Electronics)
-  if (
-    searchText.includes("celular") ||
-    searchText.includes("smartphone") ||
-    searchText.includes("iphone") ||
-    searchText.includes("galaxy") ||
-    searchText.includes("laptop") ||
-    searchText.includes("computación") ||
-    searchText.includes("computadora") ||
-    searchText.includes("pantalla") ||
-    searchText.includes("smart watch") ||
-    searchText.includes("smartwatch") ||
-    searchText.includes("reloj inteligente") ||
-    searchText.includes("cargador") ||
-    searchText.includes("tablet") ||
-    searchText.includes("kindle") ||
-    searchText.includes("cámara") ||
-    searchText.includes("gopro") ||
-    searchText.includes("point") ||
-    searchText.includes("hidrogel") ||
-    searchText.includes("procesador") ||
-    searchText.includes("memoria ram") ||
-    searchText.includes("disco duro") ||
-    searchText.includes("ssd") ||
-    searchText.includes("intel") ||
-    searchText.includes("amd") ||
-    searchText.includes("monitor") ||
-    searchText.includes("electrónica") ||
-    searchText.includes("tecnología")
-  ) {
-    return "Tecnología";
-  }
-
-  // 4. Hogar
-  if (
-    searchText.includes("hogar") ||
-    searchText.includes("mueble") ||
-    searchText.includes("jardín") ||
-    searchText.includes("jardin") ||
-    searchText.includes("sarten") ||
-    searchText.includes("olla") ||
-    searchText.includes("cocina") ||
-    searchText.includes("licuadora") ||
-    searchText.includes("aspiradora") ||
-    searchText.includes("colchon") ||
-    searchText.includes("almohada") ||
-    searchText.includes("sabanas") ||
-    searchText.includes("vaso") ||
-    searchText.includes("termo") ||
-    searchText.includes("comedor") ||
-    searchText.includes("cuchillo") ||
-    searchText.includes("herramientas") ||
-    searchText.includes("foco") ||
-    searchText.includes("led") ||
-    searchText.includes("freidora") ||
-    searchText.includes("cafetera") ||
-    searchText.includes("aire acondicionado") ||
-    searchText.includes("ventilador") ||
-    searchText.includes("herramienta") ||
-    searchText.includes("decoración") ||
-    searchText.includes("batería de cocina")
-  ) {
-    return "Hogar";
-  }
-
-  // 5. Moda
-  if (
-    searchText.includes("moda") ||
-    searchText.includes("ropa") ||
-    searchText.includes("calzado") ||
-    searchText.includes("tenis") ||
-    searchText.includes("playera") ||
-    searchText.includes("pantalon") ||
-    searchText.includes("sudadera") ||
-    searchText.includes("mochila") ||
-    searchText.includes("vestido") ||
-    searchText.includes("reloj de mano") ||
-    searchText.includes("lentes") ||
-    searchText.includes("gafas") ||
-    searchText.includes("zapatos") ||
-    searchText.includes("botas") ||
-    searchText.includes("camisa") ||
-    searchText.includes("chaqueta") ||
-    searchText.includes("abrigo") ||
-    searchText.includes("bolso") ||
-    searchText.includes("joyería")
-  ) {
-    return "Moda";
-  }
-
-  // 6. Deportes
-  if (
-    searchText.includes("deporte") ||
-    searchText.includes("balon") ||
-    searchText.includes("mancuernas") ||
-    searchText.includes("pesa") ||
-    searchText.includes("bicicleta") ||
-    searchText.includes("gym") ||
-    searchText.includes("ejercicio") ||
-    searchText.includes("futbol") ||
-    searchText.includes("basquetbol") ||
-    searchText.includes("entrenamiento") ||
-    searchText.includes("suplemento") ||
-    searchText.includes("proteina") ||
-    searchText.includes("fitness")
-  ) {
-    return "Deportes";
-  }
-
-  // 7. Belleza (Cosméticos, Maquillaje, Skincare)
-  if (
-    searchText.includes("maquillaje") ||
-    searchText.includes("cosmetico") ||
-    searchText.includes("cosmético") ||
-    searchText.includes("skincare") ||
-    searchText.includes("crema facial") ||
-    searchText.includes("protector solar") ||
-    searchText.includes("bloqueador") ||
-    searchText.includes("labial") ||
-    searchText.includes("rimel") ||
-    searchText.includes("máscara de pestañas") ||
-    searchText.includes("base de maquillaje") ||
-    searchText.includes("serum") ||
-    searchText.includes("sérum") ||
-    searchText.includes("belleza") ||
-    searchText.includes("cuidado personal") ||
-    searchText.includes("perfume") ||
-    searchText.includes("locion") ||
-    searchText.includes("loción") ||
-    searchText.includes("fragancia")
-  ) {
-    return "Belleza";
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(kw => searchText.includes(kw))) {
+      return category;
+    }
   }
 
   const mapped = mapMercadoLibreCategory(categoryPath);

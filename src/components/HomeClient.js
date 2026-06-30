@@ -7,12 +7,16 @@ import StoreMarquee from "@/components/StoreMarquee";
 import Navbar from "@/components/Navbar";
 import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2 } from "lucide-react";
 
-export default function HomeClient({ offers }) {
+export default function HomeClient({ initialOffers, initialTotal, initialHasMore }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(null);
   const [brand, setBrand] = useState(null);
-  const [currentOffers, setCurrentOffers] = useState(offers);
+  const [offers, setOffers] = useState(initialOffers || []);
+  const [currentOffers, setCurrentOffers] = useState(initialOffers || []);
   const [sortBy, setSortBy] = useState("hot"); // "hot" | "price-asc" | "recent"
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // ── ESTADO Y LÓGICA DE SUSCRIPCIÓN A ALERTAS ─────
   const [subscribeEmail, setSubscribeEmail] = useState("");
@@ -139,39 +143,59 @@ export default function HomeClient({ offers }) {
 
   const chartData = useMemo(() => {
     if (!selectedOffer) return [];
-    const price = parseFloat(selectedOffer.price);
-    const originalPrice = selectedOffer.originalPrice ? parseFloat(selectedOffer.originalPrice) : null;
-    
-    const p4 = price; // Hoy
-    const p0 = originalPrice || Math.round(price * 1.25); // Hace 30 días
-    
-    // Variaciones lógicas para crear una curva decreciente con fluctuaciones reales
-    const p1 = Math.round(p0 * 0.95);
-    const p2 = Math.round(p0 * 0.98);
-    const p3 = Math.round(p0 * 0.85);
 
-    // Evitar que caigan por debajo de p4 y hacer curva lógica
-    const safeP1 = Math.max(p1, p4 + (p0 - p4) * 0.6);
-    const safeP2 = Math.max(p2, p4 + (p0 - p4) * 0.75);
-    const safeP3 = Math.max(p3, p4 + (p0 - p4) * 0.3);
-
-    const points = [
-      { price: Math.round(p0), label: "30d", daysAgo: 30 },
-      { price: Math.round(safeP1), label: "21d", daysAgo: 21 },
-      { price: Math.round(safeP2), label: "14d", daysAgo: 14 },
-      { price: Math.round(safeP3), label: "7d", daysAgo: 7 },
-      { price: Math.round(p4), label: "Hoy", daysAgo: 0 }
-    ];
-
+    let calculatedPoints = [];
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const calculatedPoints = points.map((pt) => {
-      const d = new Date();
-      d.setDate(d.getDate() - pt.daysAgo);
-      return {
-        ...pt,
-        dateStr: `${d.getDate()} ${months[d.getMonth()]}`
-      };
-    });
+
+    if (selectedOffer.priceHistories && selectedOffer.priceHistories.length >= 2) {
+      const histories = [...selectedOffer.priceHistories].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const last5 = histories.slice(-5);
+      
+      calculatedPoints = last5.map(h => {
+        const d = new Date(h.createdAt);
+        return {
+          price: Math.round(h.price),
+          label: `${d.getDate()} ${months[d.getMonth()]}`,
+          dateStr: `${d.getDate()} ${months[d.getMonth()]}`
+        };
+      });
+
+      // Pad beginning if we have less than 5 points for the layout
+      while (calculatedPoints.length < 5) {
+        calculatedPoints.unshift({ ...calculatedPoints[0] });
+      }
+    } else {
+      const price = parseFloat(selectedOffer.price);
+      const originalPrice = selectedOffer.originalPrice ? parseFloat(selectedOffer.originalPrice) : null;
+      
+      const p4 = price; // Hoy
+      const p0 = originalPrice || Math.round(price * 1.25); // Hace 30 días
+      
+      const p1 = Math.round(p0 * 0.95);
+      const p2 = Math.round(p0 * 0.98);
+      const p3 = Math.round(p0 * 0.85);
+
+      const safeP1 = Math.max(p1, p4 + (p0 - p4) * 0.6);
+      const safeP2 = Math.max(p2, p4 + (p0 - p4) * 0.75);
+      const safeP3 = Math.max(p3, p4 + (p0 - p4) * 0.3);
+
+      const points = [
+        { price: Math.round(p0), label: "30d", daysAgo: 30 },
+        { price: Math.round(safeP1), label: "21d", daysAgo: 21 },
+        { price: Math.round(safeP2), label: "14d", daysAgo: 14 },
+        { price: Math.round(safeP3), label: "7d", daysAgo: 7 },
+        { price: Math.round(p4), label: "Hoy", daysAgo: 0 }
+      ];
+
+      calculatedPoints = points.map((pt) => {
+        const d = new Date();
+        d.setDate(d.getDate() - pt.daysAgo);
+        return {
+          ...pt,
+          dateStr: `${d.getDate()} ${months[d.getMonth()]}`
+        };
+      });
+    }
 
     const prices = calculatedPoints.map(p => p.price);
     const minP = Math.min(...prices);
@@ -600,11 +624,44 @@ export default function HomeClient({ offers }) {
             )}
 
             {filtered.length > 0 ? (
-              <div className="offers-grid">
-                {filtered.map((offer, i) => (
-                  <OfferCard key={offer.id} offer={offer} index={i} onOpenModal={setSelectedOffer} />
-                ))}
-              </div>
+              <>
+                <div className="offers-grid">
+                  {filtered.map((offer, i) => (
+                    <OfferCard key={offer.id} offer={offer} index={i} onOpenModal={setSelectedOffer} />
+                  ))}
+                </div>
+                {hasMore && !search && !category && !brand && (
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+                    <button 
+                      className="btn-primary" 
+                      onClick={async () => {
+                        setLoadingMore(true);
+                        try {
+                          const res = await fetch(`/api/offers?page=${page + 1}&limit=24`);
+                          const data = await res.json();
+                          if (res.ok) {
+                            setOffers(prev => {
+                              const newOffers = [...prev, ...data.offers];
+                              setCurrentOffers(newOffers);
+                              return newOffers;
+                            });
+                            setHasMore(data.hasMore);
+                            setPage(prev => prev + 1);
+                          }
+                        } catch (err) {
+                          console.error("Error loading more", err);
+                        } finally {
+                          setLoadingMore(false);
+                        }
+                      }}
+                      disabled={loadingMore}
+                      style={{ padding: "0.8rem 2rem", fontSize: "0.95rem" }}
+                    >
+                      {loadingMore ? <Loader2 size={18} className="animate-spin" /> : "Cargar más ofertas"}
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="empty-state">
                 <Sparkles size={40} style={{ margin: "0 auto 1rem", opacity: 0.2 }} />

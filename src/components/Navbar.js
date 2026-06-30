@@ -1,9 +1,12 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { Lock, Search, CreditCard, Tag } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useSession } from "next-auth/react";
 
 export default function Navbar({ onSearch, offers = [] }) {
+  const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -69,7 +72,7 @@ export default function Navbar({ onSearch, offers = [] }) {
 
         {/* Brand */}
         <Link href="/" className="nav-brand">
-          <img src="/logo.png" alt="PromoAdictos" className="nav-brand-logo" />
+          <Image src="/logo.png" alt="PromoAdictos" width={32} height={32} className="nav-brand-logo" />
           <div>
             <div className="nav-brand-name gradient-text">PromoAdictos</div>
             <div className="nav-brand-tagline">Tu adicción a las ofertas</div>
@@ -108,11 +111,13 @@ export default function Navbar({ onSearch, offers = [] }) {
                         borderLeftColor: idx === activeIndex ? "var(--clr-orange)" : ""
                       }}
                     >
-                      <img
+                      <Image
                         src={offer.imageUrl || "/logo.png"}
                         alt={offer.title}
+                        width={40}
+                        height={40}
                         className="nav-search-thumb"
-                        onError={(e) => { e.target.src = "/logo.png"; }}
+                        onError={(e) => { e.currentTarget.srcset = "/logo.png 1x"; e.currentTarget.src = "/logo.png"; }}
                       />
                       <div className="nav-search-info">
                         <div className="nav-search-item-title">{offer.title}</div>
@@ -136,7 +141,7 @@ export default function Navbar({ onSearch, offers = [] }) {
                   ))
                 ) : (
                   <div className="nav-search-empty">
-                    No se encontraron ofertas para "{query}" ⚡
+                    No se encontraron ofertas para &quot;{query}&quot; ⚡
                   </div>
                 )}
               </div>
@@ -154,9 +159,11 @@ export default function Navbar({ onSearch, offers = [] }) {
             <CreditCard size={16} />
             <span>Terminales Point</span>
           </Link>
-          <Link href="/admin" className="btn-ghost" title="Admin" id="nav-admin-btn">
-            <Lock size={18} />
-          </Link>
+          {session && (
+            <Link href="/admin" className="btn-ghost" title="Admin" id="nav-admin-btn">
+              <Lock size={18} />
+            </Link>
+          )}
         </div>
       </div>
     </header>
