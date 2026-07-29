@@ -77,18 +77,23 @@ export async function GET(req) {
   }
 
   try {
+    // Threshold for deactivating offers (default: 3 failed checks)
+    const MAX_FAILED_CHECKS = parseInt(process.env.MAX_FAILED_CHECKS || "3", 10);
+
     const offers = await prisma.offer.findMany({
-      select: { id: true, title: true, affiliateUrl: true, price: true, imageUrl: true },
+      select: { id: true, title: true, affiliateUrl: true, price: true, imageUrl: true, isActive: true, failedChecks: true },
+      where: { isActive: true },
       orderBy: { createdAt: "desc" },
     });
 
     if (offers.length === 0) {
-      return NextResponse.json({ broken: [], total: 0 });
+      return NextResponse.json({ broken: [], total: 0, deactivated: 0, updated: 0 });
     }
 
-    // Check links in batches of 5 to avoid hammering servers
     const BATCH_SIZE = 5;
     const broken = [];
+    let deactivatedCount = 0;
+    let updatedCount = 0;
 
     for (let i = 0; i < offers.length; i += BATCH_SIZE) {
       const batch = offers.slice(i, i + BATCH_SIZE);
@@ -103,7 +108,19 @@ export async function GET(req) {
       );
 
       for (const r of results) {
+        const updateData = { lastCheckedAt: new Date() };
+
         if (!r.ok) {
+          // Increment failed checks
+          const newFailedCount = (r.failedChecks || 0) + 1;
+          updateData.failedChecks = newFailedCount;
+
+          // Deactivate if threshold reached
+          if (newFailedCount >= MAX_FAILED_CHECKS) {
+            updateData.isActive = false;
+            deactivatedCount++;
+          }
+
           broken.push({
             id: r.id,
             title: r.title,
@@ -113,12 +130,29 @@ export async function GET(req) {
             status: r.status,
             reason: r.reason,
             finalUrl: r.finalUrl,
+            failedChecks: newFailedCount,
+            willDeactivate: newFailedCount >= MAX_FAILED_CHECKS
           });
+        } else {
+          // Reset failed checks if link is working
+          updateData.failedChecks = 0;
         }
+
+        await prisma.offer.update({
+          where: { id: r.id },
+          data: updateData
+        });
+        updatedCount++;
       }
     }
 
-    return NextResponse.json({ broken, total: offers.length, brokenCount: broken.length });
+    return NextResponse.json({
+      broken,
+      total: offers.length,
+      brokenCount: broken.length,
+      deactivated: deactivatedCount,
+      updated: updatedCount
+    });
   } catch (error) {
     console.error("Error checking links:", error);
     return NextResponse.json(

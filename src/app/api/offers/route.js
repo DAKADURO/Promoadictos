@@ -60,15 +60,19 @@ async function notifySubscribers(offer) {
 
 export async function GET(req) {
   try {
+    const session = await auth();
     const { searchParams } = new URL(req.url);
     const page = searchParams.get("page");
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit"), 10) : 24;
+    const isAdmin = !!session; // Only show inactive offers to admins
+    const where = isAdmin ? {} : { isActive: true };
 
     if (page) {
       const pageNum = parseInt(page, 10) || 1;
       const skip = (pageNum - 1) * limit;
 
       const offers = await prisma.offer.findMany({
+        where,
         orderBy: [
           { isFeatured: "desc" },
           { createdAt: "desc" },
@@ -83,13 +87,14 @@ export async function GET(req) {
         }
       });
 
-      const total = await prisma.offer.count();
+      const total = await prisma.offer.count({ where });
       const hasMore = skip + offers.length < total;
 
       return NextResponse.json({ offers, hasMore, total });
     } else {
       // Legacy support for admin dashboard which expects an array
       const offers = await prisma.offer.findMany({
+        where,
         orderBy: [
           { isFeatured: "desc" },
           { createdAt: "desc" },

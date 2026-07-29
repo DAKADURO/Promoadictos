@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 // Configured via environment variables:
 // - SYNC_PRICES_SCHEDULE (default: "0 0,6,12,18 * * *" = every 6 hours)
 // - CHECK_LINKS_SCHEDULE (default: "0 0 * * *" = daily at midnight)
+// - AUTO_DEACTIVATE_SCHEDULE (default: "0 2 * * *" = daily at 2 AM)
+// - DEACTIVATE_COUPONS_SCHEDULE (default: "0 3 * * *" = daily at 3 AM)
 // - JOBS_ENABLED (default: "true")
 const JOBS = [
   {
@@ -16,6 +18,16 @@ const JOBS = [
     name: "check-links",
     schedule: process.env.CHECK_LINKS_SCHEDULE || "0 0 * * *",
     handler: checkLinks
+  },
+  {
+    name: "auto-deactivate",
+    schedule: process.env.AUTO_DEACTIVATE_SCHEDULE || "0 2 * * *",
+    handler: autoDeactivate
+  },
+  {
+    name: "deactivate-coupons",
+    schedule: process.env.DEACTIVATE_COUPONS_SCHEDULE || "0 3 * * *",
+    handler: deactivateCoupons
   }
 ];
 
@@ -173,7 +185,67 @@ async function checkLinks() {
   const data = await res.json();
   return {
     total: data.total,
-    brokenCount: data.brokenCount
+    brokenCount: data.brokenCount,
+    deactivated: data.deactivated,
+    updated: data.updated
+  };
+}
+
+/**
+ * Job handler: auto-deactivate offers by discount threshold or age.
+ * Calls the auto-deactivate endpoint with CRON_SECRET.
+ */
+async function autoDeactivate() {
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const secret = process.env.CRON_SECRET;
+
+  if (!secret) {
+    throw new Error("CRON_SECRET not set for auto-deactivate job");
+  }
+
+  const url = `${baseUrl}/api/offers/auto-deactivate?secret=${encodeURIComponent(secret)}`;
+
+  const res = await fetch(url, { method: "GET" });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`auto-deactivate failed with status ${res.status}: ${text}`);
+  }
+
+  const data = await res.json();
+  return {
+    success: data.success,
+    count: data.count,
+    deactivated: data.deactivated
+  };
+}
+
+/**
+ * Job handler: deactivate expired coupons.
+ * Calls the deactivate-expired endpoint with CRON_SECRET.
+ */
+async function deactivateCoupons() {
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const secret = process.env.CRON_SECRET;
+
+  if (!secret) {
+    throw new Error("CRON_SECRET not set for deactivate-coupons job");
+  }
+
+  const url = `${baseUrl}/api/coupons/deactivate-expired?secret=${encodeURIComponent(secret)}`;
+
+  const res = await fetch(url, { method: "GET" });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`deactivate-coupons failed with status ${res.status}: ${text}`);
+  }
+
+  const data = await res.json();
+  return {
+    success: data.success,
+    count: data.count,
+    deactivated: data.deactivated
   };
 }
 

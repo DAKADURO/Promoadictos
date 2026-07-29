@@ -22,6 +22,9 @@ model Offer {
   category      String   @default("General")
   brand         String?
   isFeatured    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  lastCheckedAt DateTime?
+  failedChecks  Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   priceHistories PriceHistory[]
