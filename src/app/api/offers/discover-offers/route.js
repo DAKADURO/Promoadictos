@@ -23,7 +23,8 @@ async function searchCategory(query, minDiscount) {
   const url = `https://api.mercadolibre.com/sites/MLM/search?q=${encodeURIComponent(query)}&limit=50`;
   const res = await fetch(url, { headers: await getMlAuthHeader() });
   if (!res.ok) {
-    throw new Error(`ML search failed for "${query}" with status ${res.status}`);
+    const text = await res.text();
+    throw new Error(`ML search failed for "${query}" with status ${res.status}: ${text}`);
   }
   const data = await res.json();
   const results = Array.isArray(data.results) ? data.results : [];
