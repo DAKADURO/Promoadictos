@@ -1,3 +1,5 @@
+import { getMlAuthHeader } from "@/lib/mercadolibre";
+
 // Helper function to resolve the target URL of any meli.la redirect
 async function resolveUrl(url) {
   try {
@@ -350,7 +352,9 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
 
       if (featuredId) {
         try {
-          const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`);
+          const apiRes = await fetch(`https://api.mercadolibre.com/items/${featuredId}`, {
+            headers: await getMlAuthHeader(),
+          });
           if (apiRes.ok) {
             const item = await apiRes.json();
             if (!details.title) details.title = item.title;
@@ -424,7 +428,9 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
     const itemId = mlmMatch[1].replace("-", ""); // Format MLM123456789
     console.log("Extracted Item ID:", itemId);
 
-    const apiRes = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
+    const apiRes = await fetch(`https://api.mercadolibre.com/items/${itemId}`, {
+      headers: await getMlAuthHeader(),
+    });
     if (!apiRes.ok) {
       throw new Error(`Failed to fetch item from Mercado Libre API. Status: ${apiRes.status}`);
     }

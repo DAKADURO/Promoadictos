@@ -60,6 +60,17 @@ model Subscriber {
   createdAt DateTime @default(now())
 }
 
+// Single-row table holding the OAuth tokens for our Mercado Libre app.
+// Needed since ML now requires Authorization: Bearer <token> for the
+// public items/search resources (see AGENTS.md/PLAN.md Phase 3 notes).
+model MercadoLibreToken {
+  id           String   @id @default(cuid())
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  updatedAt    DateTime @updatedAt
+}
+
 model JobLog {
   id        String   @id @default(cuid())
   job       String   // Nombre del job: "sync-prices", "check-links", etc.

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { scrapeProduct } from "@/lib/scraper";
 import { extractProductId } from "@/lib/productId";
+import { getMlAuthHeader } from "@/lib/mercadolibre";
 
 // One representative search query per existing storefront category.
 // Kept separate from scraper.js's CATEGORY_KEYWORDS (which classifies a
@@ -20,7 +21,7 @@ const CATEGORY_QUERIES = {
 
 async function searchCategory(query, minDiscount) {
   const url = `https://api.mercadolibre.com/sites/MLM/search?q=${encodeURIComponent(query)}&limit=50`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: await getMlAuthHeader() });
   if (!res.ok) {
     throw new Error(`ML search failed for "${query}" with status ${res.status}`);
   }
