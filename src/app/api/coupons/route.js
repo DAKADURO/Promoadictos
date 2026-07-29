@@ -25,6 +25,57 @@ export async function POST(req) {
   try {
     const data = await req.json();
 
+    // SOPORTE PARA IMPORTACIÓN MASIVA DE CUPONES
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        return NextResponse.json({ error: "No se proporcionaron cupones" }, { status: 400 });
+      }
+
+      const existingCoupons = await prisma.coupon.findMany({
+        select: { code: true, store: true }
+      });
+      const existingSet = new Set(existingCoupons.map(c => `${c.code.toLowerCase().trim()}_${c.store.toLowerCase().trim()}`));
+
+      const newItems = [];
+      let skippedCount = 0;
+
+      for (const item of data) {
+        if (!item.code || !item.store) continue;
+        const key = `${item.code.toLowerCase().trim()}_${item.store.toLowerCase().trim()}`;
+        if (existingSet.has(key)) {
+          skippedCount++;
+          continue;
+        }
+        existingSet.add(key);
+        newItems.push({
+          title: item.title || `Cupón ${item.code}`,
+          code: item.code.toUpperCase().trim(),
+          discount: item.discount || null,
+          description: item.description || null,
+          store: item.store || "Mercado Libre",
+          link: item.link || "https://www.mercadolibre.com.mx",
+          category: item.category || "General",
+          expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+          isActive: item.isActive !== undefined ? item.isActive : true,
+          isFeatured: !!item.isFeatured,
+        });
+      }
+
+      if (newItems.length > 0) {
+        await prisma.coupon.createMany({
+          data: newItems,
+        });
+      }
+
+      revalidatePath("/cupones");
+      return NextResponse.json({
+        success: true,
+        created: newItems.length,
+        skipped: skippedCount,
+      });
+    }
+
+    // CREACIÓN INDIVIDUAL DE CUPÓN
     if (!data.title || !data.code || !data.store || !data.link) {
       return NextResponse.json({ error: "Faltan campos obligatorios (título, código, tienda y enlace)" }, { status: 400 });
     }
@@ -32,7 +83,6 @@ export async function POST(req) {
     const titleLower = data.title.toLowerCase().trim();
     const codeLower = data.code.toLowerCase().trim();
 
-    // Check for exact duplicate coupons (same code and same store)
     const existingCoupons = await prisma.coupon.findMany({
       select: {
         id: true,
@@ -56,7 +106,7 @@ export async function POST(req) {
     const coupon = await prisma.coupon.create({
       data: {
         title: data.title,
-        code: data.code,
+        code: data.code.toUpperCase().trim(),
         discount: data.discount || null,
         description: data.description || null,
         store: data.store,

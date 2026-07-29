@@ -42,6 +42,125 @@ function extractProductId(url) {
   return lowerUrl.trim();
 }
 
+function parseCouponsFromText(text, defaultStore = "Mercado Libre", defaultLink = "https://www.mercadolibre.com.mx") {
+  if (!text || !text.trim()) return [];
+
+  const urlRegex = /(https?:\/\/[^\s]+)/gi;
+  const urlsInText = text.match(urlRegex) || [];
+  const mainLink = urlsInText.length > 0 ? urlsInText[0] : (defaultLink.trim() || "https://www.mercadolibre.com.mx");
+
+  // Regex to match "Cupón: CODE", "Cupon: CODE", "Código: CODE", "Code: CODE", "Cupón CODE"
+  const couponRegex = /(?:Cupón|Cupon|Código|Codigo|Code)\s*:?\s*([A-Z0-9_-]{3,30})/gi;
+
+  let matches = [];
+  let match;
+  while ((match = couponRegex.exec(text)) !== null) {
+    matches.push({
+      code: match[1].toUpperCase().trim(),
+      index: match.index,
+      rawMatch: match[0]
+    });
+  }
+
+  // Fallback: If no explicit "Cupón:" tag found, look for uppercase tokens
+  if (matches.length === 0) {
+    const uppercaseWords = text.match(/\b[A-Z0-9_-]{4,25}\b/g) || [];
+    const stopWords = new Set(["HASTA", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "MERCADO", "LIBRE", "AMAZON", "MEXICO", "DESCUENTO", "COMPRA", "MINIMA", "MAXIMO", "VALIDO", "CUPON", "CUPONES", "OFERTA", "OFERTAS", "LIVERPOOL", "APLICA", "TIENDA"]);
+    const candidateCodes = Array.from(new Set(uppercaseWords.filter(w => !stopWords.has(w) && /[0-9A-Z]/.test(w))));
+    
+    matches = candidateCodes.map(code => ({ code, index: text.indexOf(code), rawMatch: code }));
+  }
+
+  // Deduplicate matches by code
+  const seenCodes = new Set();
+  matches = matches.filter(m => {
+    if (seenCodes.has(m.code)) return false;
+    seenCodes.add(m.code);
+    return true;
+  });
+
+  const results = [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const current = matches[i];
+    const nextIndex = i < matches.length - 1 ? matches[i + 1].index : text.length;
+    const blockText = text.substring(current.index, nextIndex);
+    const blockLines = blockText.split("\n").map(l => l.trim()).filter(Boolean);
+
+    let discount = "";
+    let descriptionParts = [];
+    let category = "General";
+    let link = mainLink;
+    let title = `Cupón ${current.code}`;
+
+    for (const line of blockLines) {
+      if (line.includes(current.code)) continue;
+
+      const lineUrls = line.match(urlRegex);
+      if (lineUrls && lineUrls.length > 0) {
+        link = lineUrls[0];
+      }
+
+      const pctMatch = line.match(/(\d+%\s*(?:de\s*descuento)?)/i);
+      if (pctMatch && !discount) {
+        discount = pctMatch[1];
+      }
+
+      const dollarMatch = line.match(/(?:desc\.?\s*máximo\s*)?(\$\s*[\d,]+(?:\.\d{2})?)/i);
+      if (dollarMatch && !discount) {
+        discount = dollarMatch[1];
+      }
+
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes("compra mín") || lowerLine.includes("desc. máx") || lowerLine.includes("vigencia") || lowerLine.includes("mínim") || lowerLine.includes("máxim") || lowerLine.includes("válid")) {
+        const cleanLine = line.replace(/^[()•\-]+|[()•\-]+$/g, "").trim();
+        if (cleanLine) descriptionParts.push(cleanLine);
+      }
+    }
+
+    let description = descriptionParts.join(" • ");
+    if (!description && blockLines.length > 1) {
+      description = blockLines.slice(1).join(" ").replace(/[()]/g, "").trim();
+    }
+
+    const lowerBlock = blockText.toLowerCase();
+    if (lowerBlock.includes("perfumería") || lowerBlock.includes("fragancia") || lowerBlock.includes("belleza") || lowerBlock.includes("cuidado personal")) {
+      category = "Belleza";
+    } else if (lowerBlock.includes("tecno") || lowerBlock.includes("celular") || lowerBlock.includes("laptop") || lowerBlock.includes("gadget")) {
+      category = "Tecnología";
+    } else if (lowerBlock.includes("moda") || lowerBlock.includes("ropa") || lowerBlock.includes("calzado")) {
+      category = "Moda";
+    } else if (lowerBlock.includes("hogar") || lowerBlock.includes("cocina")) {
+      category = "Hogar";
+    } else if (lowerBlock.includes("gaming") || lowerBlock.includes("juego") || lowerBlock.includes("console")) {
+      category = "Gaming";
+    } else if (lowerBlock.includes("audio") || lowerBlock.includes("audífono")) {
+      category = "Audio";
+    }
+
+    let store = defaultStore || "Mercado Libre";
+    if (lowerBlock.includes("amazon")) store = "Amazon";
+    else if (lowerBlock.includes("mercado libre") || lowerBlock.includes("meli")) store = "Mercado Libre";
+    else if (lowerBlock.includes("aliexpress")) store = "AliExpress";
+    else if (lowerBlock.includes("liverpool")) store = "Liverpool";
+
+    results.push({
+      id: `parsed-${i}-${Date.now()}`,
+      title,
+      code: current.code,
+      discount: discount || "Descuento especial",
+      description: description || "Aplicable en compras calificadas",
+      store,
+      link,
+      category,
+      isActive: true,
+      isFeatured: false,
+    });
+  }
+
+  return results;
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("offers");
 
@@ -60,9 +179,16 @@ export default function AdminPage() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("Todas");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Estados para Cupones
+  // Estados para Cupones (Modo Masivo vs Individual)
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(true);
+  const [couponInputMode, setCouponInputMode] = useState("bulk"); // "bulk" | "single"
+  const [bulkCouponText, setBulkCouponText] = useState("");
+  const [bulkDefaultStore, setBulkDefaultStore] = useState("Mercado Libre");
+  const [bulkDefaultLink, setBulkDefaultLink] = useState("https://www.mercadolibre.com.mx");
+  const [parsedCoupons, setParsedCoupons] = useState([]);
+  const [submittingBulkCoupons, setSubmittingBulkCoupons] = useState(false);
+
   const [couponFormData, setCouponFormData] = useState(EMPTY_COUPON_FORM);
   const [editingCouponId, setEditingCouponId] = useState(null);
   const [submittingCoupon, setSubmittingCoupon] = useState(false);
@@ -72,9 +198,10 @@ export default function AdminPage() {
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
 
   // Estados para Links Rotos
-  const [brokenLinks, setBrokenLinks] = useState(null); // null = no checkeado aún
+  const [brokenLinks, setBrokenLinks] = useState(null);
   const [checkingLinks, setCheckingLinks] = useState(false);
   const [deletingBrokenIds, setDeletingBrokenIds] = useState(new Set());
+
 
   const isTitleDuplicate = useMemo(() => {
     if (!formData.title) return false;
@@ -414,6 +541,46 @@ export default function AdminPage() {
       }
     } catch {
       showToast("Error de conexión al actualizar", "error");
+    }
+  };
+
+  // Parsear texto masivo de cupones en tiempo real
+  useEffect(() => {
+    if (!bulkCouponText.trim()) {
+      setParsedCoupons([]);
+      return;
+    }
+    const detected = parseCouponsFromText(bulkCouponText, bulkDefaultStore, bulkDefaultLink);
+    setParsedCoupons(detected);
+  }, [bulkCouponText, bulkDefaultStore, bulkDefaultLink]);
+
+  const handleBulkCouponsSubmit = async (e) => {
+    e.preventDefault();
+    if (parsedCoupons.length === 0) {
+      showToast("No se detectaron cupones válidos en el texto introducido.", "error");
+      return;
+    }
+    setSubmittingBulkCoupons(true);
+    try {
+      const res = await fetch("/api/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedCoupons),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`¡Éxito! Se publicaron ${data.created} cupones nuevos.${data.skipped > 0 ? ` (${data.skipped} ya existían)` : ""}`);
+        setBulkCouponText("");
+        setParsedCoupons([]);
+        fetchCoupons();
+      } else {
+        const errorMsg = data?.details || data?.error || "Error al publicar cupones masivos";
+        showToast(errorMsg, "error");
+      }
+    } catch {
+      showToast("Error de conexión al guardar los cupones", "error");
+    } finally {
+      setSubmittingBulkCoupons(false);
     }
   };
 
@@ -1517,8 +1684,8 @@ export default function AdminPage() {
             </div>
           ) : (
             <div className="admin-grid-layout">
-              {/* Coupons Form */}
-              <form onSubmit={handleCouponSubmit} style={{
+              {/* Coupons Container (Bulk or Single) */}
+              <div style={{
                 background: "rgba(14, 19, 38, 0.4)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
@@ -1527,72 +1694,88 @@ export default function AdminPage() {
                 boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
                 transition: "all 0.3s ease",
               }}>
-                <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
-                  <span style={{ 
-                    width: "28px", height: "28px", 
-                    background: editingCouponId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
-                    borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: editingCouponId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
-                    transition: "all 0.3s ease"
-                  }}>
-                    {editingCouponId ? <Edit3 size={14} color="#fff" /> : <Plus size={14} color="#fff" />}
-                  </span>
-                  {editingCouponId ? "Editar cupón" : "Nuevo cupón"}
-                </h2>
+                {/* Selector de Modo */}
+                <div style={{
+                  display: "flex",
+                  gap: "0.4rem",
+                  marginBottom: "1.25rem",
+                  background: "rgba(0,0,0,0.25)",
+                  padding: "0.3rem",
+                  borderRadius: "0.75rem",
+                  border: "1px solid rgba(255,255,255,0.05)"
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCouponInputMode("bulk");
+                      handleCancelCouponEdit();
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "0.6rem 0.6rem",
+                      borderRadius: "0.55rem",
+                      border: "none",
+                      background: couponInputMode === "bulk" && !editingCouponId ? "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))" : "transparent",
+                      color: couponInputMode === "bulk" && !editingCouponId ? "#fff" : "var(--clr-muted)",
+                      fontWeight: 700,
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.4rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    ⚡ Pegar WhatsApp / Telegram
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCouponInputMode("single")}
+                    style={{
+                      flex: 1,
+                      padding: "0.6rem 0.6rem",
+                      borderRadius: "0.55rem",
+                      border: "none",
+                      background: couponInputMode === "single" || editingCouponId ? "linear-gradient(135deg, var(--clr-indigo), #8b5cf6)" : "transparent",
+                      color: couponInputMode === "single" || editingCouponId ? "#fff" : "var(--clr-muted)",
+                      fontWeight: 700,
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.4rem",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    📝 {editingCouponId ? "Editando Cupón" : "Individual"}
+                  </button>
+                </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                  {/* Title */}
-                  <div>
-                    <label style={labelStyle}>Título del cupón</label>
-                    <input 
-                      name="title" 
-                      value={couponFormData.title} 
-                      onChange={(e) => setCouponFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Ej: $150 de Dcto en tu primera compra" 
-                      required 
-                      style={inputStyle} 
-                    />
-                  </div>
-
-                  {/* Code + Discount */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                {couponInputMode === "bulk" && !editingCouponId ? (
+                  /* ── MODO CARGA MASIVA DE CUPONES ── */
+                  <form onSubmit={handleBulkCouponsSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                     <div>
-                      <label style={labelStyle}>Código</label>
-                      <input 
-                        name="code" 
-                        value={couponFormData.code} 
-                        onChange={(e) => setCouponFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                        placeholder="PROMO150" 
-                        required 
-                        style={inputStyle} 
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                        <label style={{ ...labelStyle, marginBottom: 0 }}>Pegar Mensaje de Cupones</label>
+                        <span style={{ fontSize: "0.7rem", color: "var(--clr-muted)" }}>Se extraerán automáticamente</span>
+                      </div>
+                      <textarea
+                        value={bulkCouponText}
+                        onChange={(e) => setBulkCouponText(e.target.value)}
+                        placeholder={`Pega aquí el mensaje con los cupones que te llegan por WhatsApp...\n\nEjemplo:\nCupón: SEACABAJULIO (compra mínima $6,000, desc. máximo $600)\nCupón: PROMOFIN (compra mínima $500, desc. máximo $50)\nCupón: JULIOTEAMO (15% de descuento)`}
+                        rows={7}
+                        style={{ ...inputStyle, resize: "vertical", fontFamily: "monospace", fontSize: "0.82rem", lineHeight: "1.4" }}
                       />
-                      {isCouponDuplicate && (
-                        <span style={{ fontSize: "0.7rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
-                          ⚠️ Ya existe este código para esta tienda.
-                        </span>
-                      )}
                     </div>
-                    <div>
-                      <label style={labelStyle}>Descuento</label>
-                      <input 
-                        name="discount" 
-                        value={couponFormData.discount} 
-                        onChange={(e) => setCouponFormData(prev => ({ ...prev, discount: e.target.value }))}
-                        placeholder="Ej: $150 MXN o 15% DTO" 
-                        style={inputStyle} 
-                      />
-                    </div>
-                  </div>
 
-                  {/* Store + Category */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                    <div>
-                      <label style={labelStyle}>Tienda</label>
-                      <div style={{ position: "relative" }}>
-                        <select 
-                          name="store" 
-                          value={couponFormData.store} 
-                          onChange={(e) => setCouponFormData(prev => ({ ...prev, store: e.target.value }))}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                      <div>
+                        <label style={labelStyle}>Tienda por Defecto</label>
+                        <select
+                          value={bulkDefaultStore}
+                          onChange={(e) => setBulkDefaultStore(e.target.value)}
                           style={{ ...inputStyle, appearance: "none" }}
                         >
                           <option value="Mercado Libre">Mercado Libre</option>
@@ -1600,152 +1783,346 @@ export default function AdminPage() {
                           <option value="AliExpress">AliExpress</option>
                           <option value="General">General</option>
                         </select>
-                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Enlace por Defecto</label>
+                        <input
+                          type="url"
+                          value={bulkDefaultLink}
+                          onChange={(e) => setBulkDefaultLink(e.target.value)}
+                          placeholder="https://..."
+                          style={inputStyle}
+                        />
                       </div>
                     </div>
-                    <div>
-                      <label style={labelStyle}>Categoría</label>
-                      <div style={{ position: "relative" }}>
-                        <select 
-                          name="category" 
-                          value={couponFormData.category} 
-                          onChange={(e) => setCouponFormData(prev => ({ ...prev, category: e.target.value }))}
-                          style={{ ...inputStyle, appearance: "none" }}
-                        >
-                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                        <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Expiry Date */}
-                  <div>
-                    <label style={labelStyle}>Fecha de Expiración</label>
-                    <input 
-                      type="date" 
-                      name="expiryDate" 
-                      value={couponFormData.expiryDate} 
-                      onChange={(e) => setCouponFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                      style={inputStyle} 
-                    />
-                  </div>
-
-                  {/* Link */}
-                  <div>
-                    <label style={labelStyle}>Enlace de Tienda</label>
-                    <input 
-                      name="link" 
-                      type="url" 
-                      value={couponFormData.link} 
-                      onChange={(e) => setCouponFormData(prev => ({ ...prev, link: e.target.value }))}
-                      placeholder="https://..." 
-                      required 
-                      style={inputStyle} 
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label style={labelStyle}>Descripción</label>
-                    <textarea 
-                      name="description" 
-                      value={couponFormData.description} 
-                      onChange={(e) => setCouponFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Detalles sobre el uso del cupón, mínimo de compra, etc." 
-                      rows={3} 
-                      style={{ ...inputStyle, resize: "none" }} 
-                    />
-                  </div>
-
-                  {/* Toggles */}
-                  <div style={{ display: "flex", gap: "1.5rem", padding: "0.25rem 0" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                      <input 
-                        type="checkbox" 
-                        name="isActive" 
-                        checked={couponFormData.isActive} 
-                        onChange={(e) => setCouponFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                        style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
-                      />
-                      <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Activo</span>
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                      <input 
-                        type="checkbox" 
-                        name="isFeatured" 
-                        checked={couponFormData.isFeatured} 
-                        onChange={(e) => setCouponFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                        style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
-                      />
-                      <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Destacado</span>
-                    </label>
-                  </div>
-
-                  {/* Form Actions */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
-                    <button 
-                      type="submit" 
-                      disabled={submittingCoupon || (!editingCouponId && isCouponDuplicate)} 
-                      style={{
-                        background: submittingCoupon 
-                          ? "var(--clr-dim)" 
-                          : !editingCouponId && isCouponDuplicate
-                            ? "rgba(255,255,255,0.05)"
-                            : editingCouponId
-                              ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
-                              : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
-                        color: !editingCouponId && isCouponDuplicate ? "var(--clr-muted)" : "#fff",
-                        border: !editingCouponId && isCouponDuplicate ? "1px solid var(--clr-border)" : "none",
+                    {/* Previsualización en tiempo real de cupones detectados */}
+                    {parsedCoupons.length > 0 ? (
+                      <div style={{
+                        background: "rgba(16, 185, 129, 0.08)",
+                        border: "1px solid rgba(16, 185, 129, 0.25)",
                         borderRadius: "0.75rem",
-                        padding: "0.9rem", 
-                        fontWeight: 700, 
+                        padding: "0.85rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.6rem"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--clr-green)" }}>
+                            ⚡ Se detectaron {parsedCoupons.length} cupón{parsedCoupons.length !== 1 ? "es" : ""}:
+                          </span>
+                          <span style={{ fontSize: "0.7rem", color: "var(--clr-muted)" }}>Previsualización antes de publicar</span>
+                        </div>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", maxHeight: "220px", overflowY: "auto", paddingRight: "0.2rem" }}>
+                          {parsedCoupons.map((item, idx) => (
+                            <div key={item.id} style={{
+                              background: "rgba(0,0,0,0.3)",
+                              padding: "0.5rem 0.75rem",
+                              borderRadius: "0.5rem",
+                              border: "1px solid rgba(255,255,255,0.05)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "0.5rem"
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                                <span style={{
+                                  background: "var(--clr-orange-bg)",
+                                  color: "var(--clr-orange-lt)",
+                                  border: "1px solid rgba(255,87,34,0.3)",
+                                  fontWeight: 800,
+                                  fontSize: "0.75rem",
+                                  padding: "0.15rem 0.45rem",
+                                  borderRadius: "4px",
+                                  flexShrink: 0
+                                }}>
+                                  {item.code}
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {item.description || item.discount}
+                                  </div>
+                                  <div style={{ fontSize: "0.68rem", color: "var(--clr-muted)" }}>
+                                    {item.store} • {item.category}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setParsedCoupons(prev => prev.filter((_, i) => i !== idx))}
+                                style={{ background: "none", border: "none", color: "var(--clr-muted)", cursor: "pointer", padding: "0.2rem" }}
+                                title="Eliminar este cupón de la lista"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : bulkCouponText.trim() ? (
+                      <div style={{ fontSize: "0.78rem", color: "#FFAC3E", background: "rgba(255,172,62,0.1)", padding: "0.6rem 0.8rem", borderRadius: "0.5rem", border: "1px solid rgba(255,172,62,0.2)" }}>
+                        ⚠️ No se detectaron códigos explícitos. Asegúrate de incluir palabras como &quot;Cupón: CODIGO&quot; o códigos en mayúsculas.
+                      </div>
+                    ) : null}
+
+                    <button
+                      type="submit"
+                      disabled={submittingBulkCoupons || parsedCoupons.length === 0}
+                      style={{
+                        background: submittingBulkCoupons || parsedCoupons.length === 0
+                          ? "rgba(255,255,255,0.05)"
+                          : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+                        color: submittingBulkCoupons || parsedCoupons.length === 0 ? "var(--clr-muted)" : "#fff",
+                        border: "none",
+                        borderRadius: "0.75rem",
+                        padding: "0.9rem",
+                        fontWeight: 700,
                         fontSize: "0.95rem",
-                        cursor: submittingCoupon || (!editingCouponId && isCouponDuplicate) ? "not-allowed" : "pointer",
-                        transition: "all 0.3s",
-                        opacity: !editingCouponId && isCouponDuplicate ? 0.6 : 1,
-                        boxShadow: submittingCoupon || (!editingCouponId && isCouponDuplicate)
-                          ? "none" 
-                          : editingCouponId 
-                            ? "0 4px 16px rgba(124,58,237,0.3)" 
-                            : "0 4px 16px rgba(255,92,0,0.3)",
+                        cursor: submittingBulkCoupons || parsedCoupons.length === 0 ? "not-allowed" : "pointer",
+                        boxShadow: parsedCoupons.length > 0 ? "0 4px 16px rgba(255,92,0,0.3)" : "none",
+                        transition: "all 0.3s"
                       }}
                     >
-                      {submittingCoupon 
-                        ? "Procesando..." 
-                        : !editingCouponId && isCouponDuplicate
-                          ? "⚠️ Corregir duplicados"
-                          : editingCouponId 
-                            ? "✦ Guardar cambios" 
-                            : "✦ Publicar cupón"}
+                      {submittingBulkCoupons
+                        ? "Publicando cupones..."
+                        : parsedCoupons.length > 0
+                          ? `🚀 Publicar ${parsedCoupons.length} Cupón${parsedCoupons.length !== 1 ? "es" : ""} de Un Clic`
+                          : "⚡ Pega un mensaje para publicar cupones"}
                     </button>
+                  </form>
+                ) : (
+                  /* ── MODO CREACIÓN / EDICIÓN INDIVIDUAL ── */
+                  <form onSubmit={handleCouponSubmit}>
+                    <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
+                      <span style={{ 
+                        width: "28px", height: "28px", 
+                        background: editingCouponId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
+                        borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: editingCouponId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
+                        transition: "all 0.3s ease"
+                      }}>
+                        {editingCouponId ? <Edit3 size={14} color="#fff" /> : <Plus size={14} color="#fff" />}
+                      </span>
+                      {editingCouponId ? "Editar cupón" : "Nuevo cupón individual"}
+                    </h2>
 
-                    {editingCouponId && (
-                      <button type="button" onClick={handleCancelCouponEdit} style={{
-                        background: "rgba(255,255,255,0.03)",
-                        color: "var(--clr-muted)",
-                        border: "1px solid var(--clr-border)",
-                        borderRadius: "0.75rem",
-                        padding: "0.75rem",
-                        fontWeight: 600,
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.4rem",
-                        transition: "all 0.3s",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-                      >
-                        <X size={15} />
-                        Cancelar edición
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </form>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                      {/* Title */}
+                      <div>
+                        <label style={labelStyle}>Título del cupón</label>
+                        <input 
+                          name="title" 
+                          value={couponFormData.title} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Ej: $150 de Dcto en Mercado Libre" 
+                          required 
+                          style={inputStyle} 
+                        />
+                      </div>
+
+                      {/* Code + Discount */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                        <div>
+                          <label style={labelStyle}>Código</label>
+                          <input 
+                            name="code" 
+                            value={couponFormData.code} 
+                            onChange={(e) => {
+                              const codeVal = e.target.value.toUpperCase();
+                              setCouponFormData(prev => ({
+                                ...prev,
+                                code: codeVal,
+                                title: prev.title ? prev.title : (codeVal ? `Cupón ${codeVal}` : ""),
+                                link: prev.link ? prev.link : "https://www.mercadolibre.com.mx"
+                              }));
+                            }}
+                            placeholder="PROMO150" 
+                            required 
+                            style={inputStyle} 
+                          />
+                          {isCouponDuplicate && (
+                            <span style={{ fontSize: "0.7rem", color: "#FFAC3E", marginTop: "0.25rem", display: "block" }}>
+                              ⚠️ Ya existe este código para esta tienda.
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Descuento</label>
+                          <input 
+                            name="discount" 
+                            value={couponFormData.discount} 
+                            onChange={(e) => setCouponFormData(prev => ({ ...prev, discount: e.target.value }))}
+                            placeholder="Ej: $150 MXN o 15% DTO" 
+                            style={inputStyle} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Store + Category */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                        <div>
+                          <label style={labelStyle}>Tienda</label>
+                          <div style={{ position: "relative" }}>
+                            <select 
+                              name="store" 
+                              value={couponFormData.store} 
+                              onChange={(e) => setCouponFormData(prev => ({ ...prev, store: e.target.value }))}
+                              style={{ ...inputStyle, appearance: "none" }}
+                            >
+                              <option value="Mercado Libre">Mercado Libre</option>
+                              <option value="Amazon">Amazon</option>
+                              <option value="AliExpress">AliExpress</option>
+                              <option value="General">General</option>
+                            </select>
+                            <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Categoría</label>
+                          <div style={{ position: "relative" }}>
+                            <select 
+                              name="category" 
+                              value={couponFormData.category} 
+                              onChange={(e) => setCouponFormData(prev => ({ ...prev, category: e.target.value }))}
+                              style={{ ...inputStyle, appearance: "none" }}
+                            >
+                              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <span style={{ position: "absolute", right: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--clr-muted)", pointerEvents: "none", fontSize: "0.6rem" }}>▼</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expiry Date */}
+                      <div>
+                        <label style={labelStyle}>Fecha de Expiración</label>
+                        <input 
+                          type="date" 
+                          name="expiryDate" 
+                          value={couponFormData.expiryDate} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                          style={inputStyle} 
+                        />
+                      </div>
+
+                      {/* Link */}
+                      <div>
+                        <label style={labelStyle}>Enlace de Tienda</label>
+                        <input 
+                          name="link" 
+                          type="url" 
+                          value={couponFormData.link} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, link: e.target.value }))}
+                          placeholder="https://..." 
+                          required 
+                          style={inputStyle} 
+                        />
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label style={labelStyle}>Descripción</label>
+                        <textarea 
+                          name="description" 
+                          value={couponFormData.description} 
+                          onChange={(e) => setCouponFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Detalles sobre el uso del cupón, mínimo de compra, etc." 
+                          rows={3} 
+                          style={{ ...inputStyle, resize: "none" }} 
+                        />
+                      </div>
+
+                      {/* Toggles */}
+                      <div style={{ display: "flex", gap: "1.5rem", padding: "0.25rem 0" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                          <input 
+                            type="checkbox" 
+                            name="isActive" 
+                            checked={couponFormData.isActive} 
+                            onChange={(e) => setCouponFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                            style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
+                          />
+                          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Activo</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                          <input 
+                            type="checkbox" 
+                            name="isFeatured" 
+                            checked={couponFormData.isFeatured} 
+                            onChange={(e) => setCouponFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                            style={{ accentColor: "var(--clr-orange)", width: "16px", height: "16px" }} 
+                          />
+                          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--clr-text)" }}>Destacado</span>
+                        </label>
+                      </div>
+
+                      {/* Form Actions */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                        <button 
+                          type="submit" 
+                          disabled={submittingCoupon || (!editingCouponId && isCouponDuplicate)} 
+                          style={{
+                            background: submittingCoupon 
+                              ? "var(--clr-dim)" 
+                              : !editingCouponId && isCouponDuplicate
+                                ? "rgba(255,255,255,0.05)"
+                                : editingCouponId
+                                  ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                                  : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+                            color: !editingCouponId && isCouponDuplicate ? "var(--clr-muted)" : "#fff",
+                            border: !editingCouponId && isCouponDuplicate ? "1px solid var(--clr-border)" : "none",
+                            borderRadius: "0.75rem",
+                            padding: "0.9rem", 
+                            fontWeight: 700, 
+                            fontSize: "0.95rem",
+                            cursor: submittingCoupon || (!editingCouponId && isCouponDuplicate) ? "not-allowed" : "pointer",
+                            transition: "all 0.3s",
+                            opacity: !editingCouponId && isCouponDuplicate ? 0.6 : 1,
+                            boxShadow: submittingCoupon || (!editingCouponId && isCouponDuplicate)
+                              ? "none" 
+                              : editingCouponId 
+                                ? "0 4px 16px rgba(124,58,237,0.3)" 
+                                : "0 4px 16px rgba(255,92,0,0.3)",
+                          }}
+                        >
+                          {submittingCoupon 
+                            ? "Procesando..." 
+                            : !editingCouponId && isCouponDuplicate
+                              ? "⚠️ Corregir duplicados"
+                              : editingCouponId 
+                                ? "✦ Guardar cambios" 
+                                : "✦ Publicar cupón"}
+                        </button>
+
+                        {editingCouponId && (
+                          <button type="button" onClick={handleCancelCouponEdit} style={{
+                            background: "rgba(255,255,255,0.03)",
+                            color: "var(--clr-muted)",
+                            border: "1px solid var(--clr-border)",
+                            borderRadius: "0.75rem",
+                            padding: "0.75rem",
+                            fontWeight: 600,
+                            fontSize: "0.85rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.4rem",
+                            transition: "all 0.3s",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = "var(--clr-muted)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                          >
+                            <X size={15} />
+                            Cancelar edición
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
 
               {/* Coupons List */}
               <div>
