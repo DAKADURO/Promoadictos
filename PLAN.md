@@ -29,11 +29,11 @@
 ## Fase 3 — Descubrimiento automático de ofertas (el corazón)
 **Modelo: Sonnet 5** · Esfuerzo: 3-5 sesiones
 
-- [ ] **SPIKE PRIMERO (bloqueante):** verificar cómo generar el link de afiliado automáticamente. Los `meli.la` se generan en el panel de afiliados de ML; investigar si hay API o parámetro de tracking en URL directa. Si no es 100% automatizable, diseñar paso semi-manual (cola de aprobación).
-- [ ] Job `discover-offers` (diario o 2×/día): busca en `api.mercadolibre.com/sites/MLM/search` con filtros de descuento por las categorías existentes (Gaming, Audio, Tecnología, Hogar, Moda, Deportes, Belleza)
-- [ ] Deduplicar contra BD reutilizando `extractProductId` de `src/app/api/offers/route.js`
-- [ ] Reglas de calidad configurables: descuento mínimo, máx. ofertas nuevas/día, cuota por categoría, auto-destacar las de mayor descuento
-- [ ] Modo "borrador" inicial: ofertas descubiertas entran con `isActive: false` y se aprueban con un clic en el admin; switch para pasar a modo 100% automático
+- [x] **SPIKE:** confirmado que **no es 100% automatizable**. Mercado Libre no ofrece API pública de afiliados para generar `meli.la` con tracking — el link solo se genera desde la barra de afiliados/app (sesión logueada del afiliado, a veces con confirmación QR). No existe parámetro de tracking que se pueda anexar a una URL directa de producto. Diseño adoptado: **cola de aprobación** — `discover-offers` usa la API pública de búsqueda (sin auth) para encontrar y scrapear productos y los guarda como borrador con la URL directa del producto (sin comisión); un humano genera el `meli.la` en la app de ML (2 clics) y lo pega al aprobar el borrador en el admin, reutilizando el flujo existente de `scraper.js`/`extractProductId` que ya acepta tanto URLs `meli.la` como URLs directas `MLM...`.
+- [x] Job `discover-offers` (diario o 2×/día): busca en `api.mercadolibre.com/sites/MLM/search` con filtros de descuento por las categorías existentes (Gaming, Audio, Tecnología, Hogar, Moda, Deportes, Belleza)
+- [x] Deduplicar contra BD reutilizando `extractProductId` (movido a `src/lib/productId.js`, usado por `src/app/api/offers/route.js` y `discover-offers`)
+- [x] Reglas de calidad configurables: `DISCOVER_MIN_DISCOUNT`, `DISCOVER_MAX_NEW_PER_DAY`, `DISCOVER_MAX_PER_CATEGORY`, `DISCOVER_AUTO_FEATURE_TOP_N`
+- [x] Modo "borrador" inicial: ofertas descubiertas entran con `isActive: false` (URL directa del producto, sin comisión) y se aprueban editando la oferta en el admin (pegar el `meli.la` y activar); switch `DISCOVER_AUTO_PUBLISH=true` para pasar a modo 100% automático
 
 ## Fase 4 — Comunicación automática
 **Modelo: Haiku 4.5** · Esfuerzo: 1 sesión

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 // - CHECK_LINKS_SCHEDULE (default: "0 0 * * *" = daily at midnight)
 // - AUTO_DEACTIVATE_SCHEDULE (default: "0 2 * * *" = daily at 2 AM)
 // - DEACTIVATE_COUPONS_SCHEDULE (default: "0 3 * * *" = daily at 3 AM)
+// - DISCOVER_OFFERS_SCHEDULE (default: "0 8,20 * * *" = 8 AM and 8 PM)
 // - JOBS_ENABLED (default: "true")
 const JOBS = [
   {
@@ -28,6 +29,11 @@ const JOBS = [
     name: "deactivate-coupons",
     schedule: process.env.DEACTIVATE_COUPONS_SCHEDULE || "0 3 * * *",
     handler: deactivateCoupons
+  },
+  {
+    name: "discover-offers",
+    schedule: process.env.DISCOVER_OFFERS_SCHEDULE || "0 8,20 * * *",
+    handler: discoverOffers
   }
 ];
 
@@ -246,6 +252,38 @@ async function deactivateCoupons() {
     success: data.success,
     count: data.count,
     deactivated: data.deactivated
+  };
+}
+
+/**
+ * Job handler: discover new offers from Mercado Libre's public search API.
+ * Calls the discover-offers endpoint with CRON_SECRET.
+ */
+async function discoverOffers() {
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const secret = process.env.CRON_SECRET;
+
+  if (!secret) {
+    throw new Error("CRON_SECRET not set for discover-offers job");
+  }
+
+  const url = `${baseUrl}/api/offers/discover-offers?secret=${encodeURIComponent(secret)}`;
+
+  const res = await fetch(url, { method: "GET" });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`discover-offers failed with status ${res.status}: ${text}`);
+  }
+
+  const data = await res.json();
+  return {
+    success: data.success,
+    count: data.count,
+    created: data.created,
+    skipped: data.skipped,
+    errors: data.errors,
+    draftMode: data.draftMode
   };
 }
 
