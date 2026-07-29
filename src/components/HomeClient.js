@@ -2,9 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import OfferCard from "@/components/OfferCard";
 import CategoryFilter from "@/components/CategoryFilter";
 import StoreMarquee from "@/components/StoreMarquee";
+import PriceChart from "@/components/PriceChart";
 import Navbar from "@/components/Navbar";
 import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2, MessageCircle, Send } from "lucide-react";
 import { getStoreInfo } from "@/lib/store";
@@ -14,12 +16,27 @@ const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
 const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL || "";
 
 export default function HomeClient({ initialOffers, initialTotal, initialHasMore }) {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState(null);
+  const [category, setCategory] = useState(() => searchParams.get("categoria") || null);
   const [brand, setBrand] = useState(null);
+  const [store, setStore] = useState(null);
   const [offers, setOffers] = useState(initialOffers || []);
   const [currentOffers, setCurrentOffers] = useState(initialOffers || []);
-  const [sortBy, setSortBy] = useState("hot"); // "hot" | "price-asc" | "recent"
+  const [sortBy, setSortBy] = useState(() => searchParams.get("orden") || "hot"); // "hot" | "price-asc" | "recent"
+
+  // Keep category/sort shareable and restorable via the URL without
+  // triggering a Next.js navigation/refetch (this state doesn't affect
+  // what the server component fetched).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (category) url.searchParams.set("categoria", category);
+    else url.searchParams.delete("categoria");
+    if (sortBy && sortBy !== "hot") url.searchParams.set("orden", sortBy);
+    else url.searchParams.delete("orden");
+    window.history.replaceState({}, "", url.toString());
+  }, [category, sortBy]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,17 +102,15 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
 
   // ── MODAL HISTORIAL DE PRECIOS ──────────────────
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [activeDotIndex, setActiveDotIndex] = useState(4); // Por defecto Hoy (último punto)
 
   // Gestos táctiles de arrastre para móviles (Bottom Sheet)
   const [touchStart, setTouchStart] = useState(0);
   const [touchCurrent, setTouchCurrent] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Restablecer el punto activo y gestos al abrir un nuevo producto
+  // Restablecer los gestos al abrir un nuevo producto
   useEffect(() => {
     if (selectedOffer) {
-      setActiveDotIndex(4);
       setTouchStart(0);
       setTouchCurrent(0);
       setIsDragging(false);
@@ -151,57 +166,6 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     () => (selectedOffer ? getStoreInfo(selectedOffer.affiliateUrl) : { name: "", color: "" }),
     [selectedOffer]
   );
-
-  const chartData = useMemo(() => {
-    if (!selectedOffer) return [];
-    if (!selectedOffer.priceHistories || selectedOffer.priceHistories.length < 2) return [];
-
-    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
-    const histories = [...selectedOffer.priceHistories].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    const last5 = histories.slice(-5);
-
-    let calculatedPoints = last5.map(h => {
-      const d = new Date(h.createdAt);
-      return {
-        price: Math.round(h.price),
-        label: `${d.getDate()} ${months[d.getMonth()]}`,
-        dateStr: `${d.getDate()} ${months[d.getMonth()]}`
-      };
-    });
-
-    // Pad beginning if we have less than 5 real points for the layout
-    while (calculatedPoints.length < 5) {
-      calculatedPoints.unshift({ ...calculatedPoints[0] });
-    }
-
-    const prices = calculatedPoints.map(p => p.price);
-    const minP = Math.min(...prices);
-    const maxP = Math.max(...prices);
-    const range = maxP - minP || 1;
-
-    // Coordenadas X fijas equidistantes con margen de seguridad horizontal de 30px
-    const xCoords = [30, 115, 200, 285, 370];
-
-    return calculatedPoints.map((pt, i) => {
-      const x = xCoords[i];
-      // Invertir Y: precio alto arriba (Y=25), precio bajo abajo (Y=125)
-      const y = 125 - ((pt.price - minP) / range) * 100;
-      return {
-        ...pt,
-        x,
-        y
-      };
-    });
-  }, [selectedOffer]);
-
-  // Generar strings de path para SVG
-  const { linePathD, areaPathD } = useMemo(() => {
-    if (!chartData.length) return { linePathD: "", areaPathD: "" };
-    const linePathD = chartData.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const areaPathD = `${linePathD} L ${chartData[chartData.length - 1].x} 150 L ${chartData[0].x} 150 Z`;
-    return { linePathD, areaPathD };
-  }, [chartData]);
 
   // ── SPOTLIGHT DEAL OF THE DAY ──────────────────
   const dealOfTheDay = useMemo(() => {
@@ -301,6 +265,9 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     if (brand) {
       result = result.filter((o) => o.brand === brand);
     }
+    if (store) {
+      result = result.filter((o) => getStoreInfo(o.affiliateUrl).name === store);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -332,7 +299,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     });
 
     return result;
-  }, [currentOffers, search, category, brand, sortBy]);
+  }, [currentOffers, search, category, brand, store, sortBy]);
 
   const dynamicCategories = useMemo(() => {
     const activeCategories = Array.from(new Set(currentOffers.map(o => o.category)));
@@ -340,6 +307,11 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
       cat => cat && cat !== "General" && cat !== "Otros" && !BASE_CATEGORIES.includes(cat)
     );
     return ["Todas", ...BASE_CATEGORIES, ...extraCategories, "Otros"];
+  }, [currentOffers]);
+
+  const dynamicStores = useMemo(() => {
+    const activeStores = Array.from(new Set(currentOffers.map(o => getStoreInfo(o.affiliateUrl).name)));
+    return activeStores.length > 1 ? ["Todas", ...activeStores] : [];
   }, [currentOffers]);
 
   const dynamicBrands = useMemo(() => {
@@ -576,6 +548,17 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
 
             {/* Category filter */}
             <CategoryFilter onFilter={setCategory} categories={dynamicCategories} active={category || "Todas"} />
+
+            {/* Store filter */}
+            {dynamicStores.length > 0 && (
+              <CategoryFilter
+                onFilter={setStore}
+                categories={dynamicStores}
+                active={store || "Todas"}
+                label="Filtrar por tienda"
+                idPrefix="store-filter"
+              />
+            )}
 
             {/* Brand filter */}
             {dynamicBrands.length > 0 && (
@@ -905,6 +888,19 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 )}
               </div>
 
+              {WHATSAPP_URL && (
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="sidebar-whatsapp-card">
+                  <div className="subscribe-icon-wrap whatsapp">
+                    <MessageCircle size={20} color="#25D366" />
+                  </div>
+                  <div>
+                    <h3 className="subscribe-title font-display">Comunidad de WhatsApp</h3>
+                    <span className="subscribe-subtitle">Únete y recibe ofertas al instante</span>
+                  </div>
+                  <ArrowRight size={18} className="sidebar-whatsapp-arrow" />
+                </a>
+              )}
+
             </aside>
           )}
 
@@ -1067,126 +1063,13 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   )}
                 </div>
 
-                {/* Caja de gráfico interactivo */}
-                <div className="price-chart-box">
-                  {chartData.length > 0 ? (
-                  <>
-                  <div className="price-chart-header">
-                    <span className="price-chart-title">Evolución de Precio</span>
-                    <span className="price-chart-hover-val">
-                      {chartData[activeDotIndex] ? (
-                        `Precio: $${chartData[activeDotIndex].price.toLocaleString("es-MX")}`
-                      ) : ""}
-                    </span>
-                  </div>
+                {/* Gráfico de precio real */}
+                <PriceChart priceHistories={selectedOffer.priceHistories} />
 
-                  <div className="price-chart-svg-wrap">
-                    {chartData[activeDotIndex] && (
-                      <div 
-                        className="price-chart-tooltip"
-                        style={{
-                          left: `${(chartData[activeDotIndex].x / 400) * 100}%`,
-                          top: `${(chartData[activeDotIndex].y / 150) * 100}%`,
-                          transform: activeDotIndex === 4 
-                            ? 'translate(-85%, -100%) translateY(-12px)' 
-                            : activeDotIndex === 0 
-                            ? 'translate(-15%, -100%) translateY(-12px)' 
-                            : 'translate(-50%, -100%) translateY(-12px)'
-                        }}
-                      >
-                        <span className="price-chart-tooltip-price">
-                          ${chartData[activeDotIndex].price.toLocaleString("es-MX")}
-                        </span>
-                        <span className="price-chart-tooltip-date">
-                          {chartData[activeDotIndex].dateStr}
-                        </span>
-                      </div>
-                    )}
-
-                    <svg 
-                      viewBox="0 0 400 150" 
-                      className="price-chart-svg"
-                    >
-                      <defs>
-                        <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--clr-orange)" stopOpacity="0.35" />
-                          <stop offset="100%" stopColor="var(--clr-orange)" stopOpacity="0.00" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Líneas de cuadrícula horizontales */}
-                      <line x1="25" y1="25" x2="375" y2="25" className="price-chart-grid-line" />
-                      <line x1="25" y1="75" x2="375" y2="75" className="price-chart-grid-line" />
-                      <line x1="25" y1="125" x2="375" y2="125" className="price-chart-grid-line" />
-
-                      {/* Área sombreada */}
-                      <path d={areaPathD} className="price-chart-area" />
-
-                      {/* Línea principal */}
-                      <path d={linePathD} className="price-chart-line" />
-
-                      {/* Puntos interactivos */}
-                      {chartData.map((pt, idx) => (
-                        <circle
-                          key={idx}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r={activeDotIndex === idx ? 6 : 4.5}
-                          className={`price-chart-dot${activeDotIndex === idx ? " active" : ""}`}
-                          onMouseEnter={() => setActiveDotIndex(idx)}
-                          onClick={() => setActiveDotIndex(idx)}
-                        />
-                      ))}
-
-                      {/* Círculos invisibles gigantes para optimización táctil en móviles */}
-                      {chartData.map((pt, idx) => (
-                        <circle
-                          key={`touch-${idx}`}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r={22}
-                          fill="transparent"
-                          stroke="none"
-                          style={{ cursor: "pointer", pointerEvents: "all" }}
-                          onMouseEnter={() => setActiveDotIndex(idx)}
-                          onClick={() => setActiveDotIndex(idx)}
-                          onTouchStart={() => setActiveDotIndex(idx)}
-                        />
-                      ))}
-                    </svg>
-                  </div>
-
-                  {/* Fechas alineadas abajo */}
-                  <div className="price-chart-dates">
-                    {chartData.map((pt, idx) => (
-                      <button
-                        key={idx}
-                        className={`price-chart-date-item${activeDotIndex === idx ? " active" : ""}`}
-                        onMouseEnter={() => setActiveDotIndex(idx)}
-                        onClick={() => setActiveDotIndex(idx)}
-                        onTouchStart={() => setActiveDotIndex(idx)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          outline: "none"
-                        }}
-                      >
-                        <div>{pt.dateStr}</div>
-                        <div style={{ fontSize: "0.6rem", opacity: 0.6, marginTop: "0.1rem" }}>
-                          ({pt.label})
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  </>
-                  ) : (
-                    <div className="price-chart-empty">
-                      <span className="price-chart-title">Precio verificado hoy</span>
-                      <p>Aún no tenemos suficiente historial para mostrar la evolución de este precio.</p>
-                    </div>
-                  )}
-                </div>
+                {/* Link a la página completa de la oferta */}
+                <Link href={`/oferta/${selectedOffer.id}`} className="price-modal-detail-link">
+                  Ver página completa de esta oferta <ArrowRight size={14} />
+                </Link>
 
                 {/* Botón CTA gigante */}
                 <a 

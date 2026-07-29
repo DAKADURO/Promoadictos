@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import HomeClient from "@/components/HomeClient";
 import { prisma } from "@/lib/db";
 import { MOCK_OFFERS } from "@/lib/mockData";
@@ -33,5 +34,9 @@ export default async function Home() {
   const initialTotal = dbOffers.length > 0 ? total : MOCK_OFFERS.length;
   const initialHasMore = dbOffers.length > 0 ? dbOffers.length < total : false;
 
-  return <HomeClient initialOffers={offers} initialTotal={initialTotal} initialHasMore={initialHasMore} />;
+  return (
+    <Suspense fallback={null}>
+      <HomeClient initialOffers={offers} initialTotal={initialTotal} initialHasMore={initialHasMore} />
+    </Suspense>
+  );
 }
