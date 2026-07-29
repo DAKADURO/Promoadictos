@@ -60,8 +60,20 @@ async function checkUrl(url) {
 
 export async function GET(req) {
   const session = await auth();
+
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { searchParams } = new URL(req.url);
+    const secretParam = searchParams.get("secret");
+    const configuredSecret = process.env.CRON_SECRET;
+
+    if (!configuredSecret) {
+      console.error("CRON_SECRET is not set in environment variables.");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    }
+
+    if (!secretParam || secretParam !== configuredSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   try {

@@ -56,3 +56,17 @@ model Subscriber {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model JobLog {
+  id        String   @id @default(cuid())
+  job       String   // Nombre del job: "sync-prices", "check-links", etc.
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  result    Json?    // Resultado JSON del job
+  error     String?  // Mensaje de error si falló
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([job])
+  @@index([createdAt])
+}
