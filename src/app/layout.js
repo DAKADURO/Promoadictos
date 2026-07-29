@@ -1,6 +1,21 @@
 import "./globals.css";
 import Script from "next/script";
+import { Inter, Sora } from "next/font/google";
 import { Providers } from "@/components/Providers";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+  variable: "--font-sora",
+  display: "swap",
+});
 
 export const metadata = {
   title: "PromoAdictos | Las Mejores Ofertas y Descuentos de México",
@@ -51,7 +66,7 @@ export default function RootLayout({ children }) {
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
 
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${sora.variable}`}>
       <head>
         {/* Google Analytics 4 */}
         {gaId && (

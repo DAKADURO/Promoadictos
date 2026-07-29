@@ -1,13 +1,19 @@
 "use client";
-import { ExternalLink, TrendingDown, Flame } from "lucide-react";
+import { ExternalLink, TrendingDown, Flame, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
 export default function OfferCard({ offer, index = 0, onOpenModal }) {
-  const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, brand, isFeatured } = offer;
+  const { title, price, originalPrice, discount, imageUrl, affiliateUrl, category, brand, isFeatured, priceHistories } = offer;
 
   const savings = originalPrice ? originalPrice - price : 0;
   const isHotDeal = discount && discount >= 30;
+
+  // Only claim a historic low when we have real price history to back it up.
+  const isHistoricLow =
+    Array.isArray(priceHistories) &&
+    priceHistories.length >= 2 &&
+    price <= Math.min(...priceHistories.map((h) => h.price));
 
   const handleCardClick = (e) => {
     // Si se hace clic en el cuerpo de la tarjeta, abrir el modal interactivo
@@ -16,9 +22,20 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick(e);
+    }
+  };
+
   return (
     <motion.div
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ver detalles de ${title}`}
       className={`offer-card${isFeatured ? " featured" : ""}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -40,7 +57,11 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
           <span className="discount-badge">-{discount}%</span>
         )}
         {/* Price trend badge */}
-        {isHotDeal ? (
+        {isHistoricLow ? (
+          <span className="price-trend historic-low">
+            <Award size={12} /> Mínimo histórico
+          </span>
+        ) : isHotDeal ? (
           <span className="price-trend hot">
             <Flame size={12} /> ¡Ofertón!
           </span>

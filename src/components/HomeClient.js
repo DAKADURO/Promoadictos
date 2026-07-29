@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import OfferCard from "@/components/OfferCard";
 import CategoryFilter from "@/components/CategoryFilter";
 import StoreMarquee from "@/components/StoreMarquee";
 import Navbar from "@/components/Navbar";
-import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2 } from "lucide-react";
+import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2, MessageCircle, Send } from "lucide-react";
+import { getStoreInfo } from "@/lib/store";
+import { BASE_CATEGORIES } from "@/lib/categories";
+
+const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
+const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL || "";
 
 export default function HomeClient({ initialOffers, initialTotal, initialHasMore }) {
   const [search, setSearch] = useState("");
@@ -141,60 +147,32 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     };
   }, [selectedOffer]);
 
+  const storeInfo = useMemo(
+    () => (selectedOffer ? getStoreInfo(selectedOffer.affiliateUrl) : { name: "", color: "" }),
+    [selectedOffer]
+  );
+
   const chartData = useMemo(() => {
     if (!selectedOffer) return [];
+    if (!selectedOffer.priceHistories || selectedOffer.priceHistories.length < 2) return [];
 
-    let calculatedPoints = [];
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-    if (selectedOffer.priceHistories && selectedOffer.priceHistories.length >= 2) {
-      const histories = [...selectedOffer.priceHistories].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      const last5 = histories.slice(-5);
-      
-      calculatedPoints = last5.map(h => {
-        const d = new Date(h.createdAt);
-        return {
-          price: Math.round(h.price),
-          label: `${d.getDate()} ${months[d.getMonth()]}`,
-          dateStr: `${d.getDate()} ${months[d.getMonth()]}`
-        };
-      });
+    const histories = [...selectedOffer.priceHistories].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const last5 = histories.slice(-5);
 
-      // Pad beginning if we have less than 5 points for the layout
-      while (calculatedPoints.length < 5) {
-        calculatedPoints.unshift({ ...calculatedPoints[0] });
-      }
-    } else {
-      const price = parseFloat(selectedOffer.price);
-      const originalPrice = selectedOffer.originalPrice ? parseFloat(selectedOffer.originalPrice) : null;
-      
-      const p4 = price; // Hoy
-      const p0 = originalPrice || Math.round(price * 1.25); // Hace 30 días
-      
-      const p1 = Math.round(p0 * 0.95);
-      const p2 = Math.round(p0 * 0.98);
-      const p3 = Math.round(p0 * 0.85);
+    let calculatedPoints = last5.map(h => {
+      const d = new Date(h.createdAt);
+      return {
+        price: Math.round(h.price),
+        label: `${d.getDate()} ${months[d.getMonth()]}`,
+        dateStr: `${d.getDate()} ${months[d.getMonth()]}`
+      };
+    });
 
-      const safeP1 = Math.max(p1, p4 + (p0 - p4) * 0.6);
-      const safeP2 = Math.max(p2, p4 + (p0 - p4) * 0.75);
-      const safeP3 = Math.max(p3, p4 + (p0 - p4) * 0.3);
-
-      const points = [
-        { price: Math.round(p0), label: "30d", daysAgo: 30 },
-        { price: Math.round(safeP1), label: "21d", daysAgo: 21 },
-        { price: Math.round(safeP2), label: "14d", daysAgo: 14 },
-        { price: Math.round(safeP3), label: "7d", daysAgo: 7 },
-        { price: Math.round(p4), label: "Hoy", daysAgo: 0 }
-      ];
-
-      calculatedPoints = points.map((pt) => {
-        const d = new Date();
-        d.setDate(d.getDate() - pt.daysAgo);
-        return {
-          ...pt,
-          dateStr: `${d.getDate()} ${months[d.getMonth()]}`
-        };
-      });
+    // Pad beginning if we have less than 5 real points for the layout
+    while (calculatedPoints.length < 5) {
+      calculatedPoints.unshift({ ...calculatedPoints[0] });
     }
 
     const prices = calculatedPoints.map(p => p.price);
@@ -292,20 +270,26 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
   useEffect(() => {
     const fetchLatest = async () => {
       try {
-        const res = await fetch("/api/offers");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setCurrentOffers(data);
-          }
-        }
+        const res = await fetch("/api/offers?page=1&limit=24");
+        if (!res.ok) return;
+        const data = await res.json();
+        const latest = Array.isArray(data.offers) ? data.offers : [];
+        if (latest.length === 0) return;
+
+        // Refresh the first page in place; keep any additional pages the
+        // user already loaded via "Cargar más" appended after it.
+        setOffers(prev => {
+          const latestIds = new Set(latest.map(o => o.id));
+          const rest = prev.filter(o => !latestIds.has(o.id));
+          return [...latest, ...rest];
+        });
       } catch (err) {
         console.error("Error polling latest offers:", err);
       }
     };
 
-    // Poll every 8 seconds to synchronize new offers in real-time
-    const interval = setInterval(fetchLatest, 8000);
+    // Poll every 60 seconds, first page only, to keep prices/new offers fresh
+    const interval = setInterval(fetchLatest, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -351,12 +335,11 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
   }, [currentOffers, search, category, brand, sortBy]);
 
   const dynamicCategories = useMemo(() => {
-    const baseCategories = ["Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza"];
     const activeCategories = Array.from(new Set(currentOffers.map(o => o.category)));
     const extraCategories = activeCategories.filter(
-      cat => cat && cat !== "General" && cat !== "Otros" && !baseCategories.includes(cat)
+      cat => cat && cat !== "General" && cat !== "Otros" && !BASE_CATEGORIES.includes(cat)
     );
-    return ["Todas", ...baseCategories, ...extraCategories, "Otros"];
+    return ["Todas", ...BASE_CATEGORIES, ...extraCategories, "Otros"];
   }, [currentOffers]);
 
   const dynamicBrands = useMemo(() => {
@@ -545,7 +528,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
       </section>
 
       {/* ── MARQUEE ─────────────────────────────── */}
-      <StoreMarquee />
+      <StoreMarquee offers={currentOffers} />
 
       {/* ── PORTAL LAYOUT SECTION ────────────────── */}
       <section className="portal-layout-section animate-up" style={{ padding: "2.5rem 0 7rem" }}>
@@ -592,33 +575,25 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
             </div>
 
             {/* Category filter */}
-            <CategoryFilter onFilter={setCategory} categories={dynamicCategories} />
+            <CategoryFilter onFilter={setCategory} categories={dynamicCategories} active={category || "Todas"} />
 
             {/* Brand filter */}
             {dynamicBrands.length > 0 && (
-              <div style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--clr-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.75rem" }}>Filtrar por marca</span>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  {dynamicBrands.map(b => (
-                    <button
-                      key={b}
-                      onClick={() => setBrand(b === "Todas" ? null : b)}
-                      style={{
-                        padding: "0.4rem 1rem",
-                        borderRadius: "2rem",
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        background: (brand === b) || (b === "Todas" && !brand) ? "var(--clr-orange)" : "rgba(255,255,255,0.05)",
-                        color: (brand === b) || (b === "Todas" && !brand) ? "#fff" : "var(--clr-muted)",
-                        border: "1px solid",
-                        borderColor: (brand === b) || (b === "Todas" && !brand) ? "var(--clr-orange)" : "rgba(255,255,255,0.1)",
-                        cursor: "pointer",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      {b}
-                    </button>
-                  ))}
+              <div className="brand-filter">
+                <span className="brand-filter-label">Filtrar por marca</span>
+                <div className="brand-filter-pills">
+                  {dynamicBrands.map(b => {
+                    const isActive = (brand === b) || (b === "Todas" && !brand);
+                    return (
+                      <button
+                        key={b}
+                        onClick={() => setBrand(b === "Todas" ? null : b)}
+                        className={`brand-pill${isActive ? " active" : ""}`}
+                      >
+                        {b}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -628,6 +603,16 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 <div className="offers-grid">
                   {filtered.map((offer, i) => (
                     <OfferCard key={offer.id} offer={offer} index={i} onOpenModal={setSelectedOffer} />
+                  ))}
+                  {loadingMore && Array.from({ length: 4 }).map((_, i) => (
+                    <div className="offer-card-skeleton" key={`skeleton-${i}`} aria-hidden="true">
+                      <div className="skeleton offer-card-skeleton-img" />
+                      <div className="offer-card-skeleton-body">
+                        <div className="skeleton offer-card-skeleton-line" style={{ width: "40%" }} />
+                        <div className="skeleton offer-card-skeleton-line" style={{ width: "90%" }} />
+                        <div className="skeleton offer-card-skeleton-line" style={{ width: "60%" }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {hasMore && !search && !category && !brand && (
@@ -928,11 +913,45 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
 
       {/* ── FOOTER ──────────────────────────────── */}
       <footer className="site-footer">
-        <div className="container">
-          <div className="footer-brand gradient-text">PromoAdictos</div>
-          <p style={{ marginTop: "0.4rem" }}>
-            © {new Date().getFullYear()} PromoAdictos — Las mejores ofertas de México
-          </p>
+        <div className="container footer-grid">
+          <div className="footer-col footer-col-brand">
+            <div className="footer-brand gradient-text">PromoAdictos</div>
+            <p className="footer-tagline">Rastreamos descuentos reales para que no tengas que hacerlo tú.</p>
+            {(WHATSAPP_URL || TELEGRAM_URL) && (
+              <div className="footer-social">
+                {WHATSAPP_URL && (
+                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="footer-social-link">
+                    <MessageCircle size={18} />
+                  </a>
+                )}
+                {TELEGRAM_URL && (
+                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="footer-social-link">
+                    <Send size={18} />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="footer-col">
+            <span className="footer-col-title">Navegación</span>
+            <Link href="/">Inicio</Link>
+            <Link href="/cupones">Cupones</Link>
+            <Link href="/terminales">Terminales Point</Link>
+          </div>
+
+          <div className="footer-col">
+            <span className="footer-col-title">Legal</span>
+            <p className="footer-disclosure">
+              PromoAdictos participa en programas de afiliados de Mercado Libre y otras tiendas.
+              Podemos recibir una comisión por compras realizadas a través de nuestros enlaces, sin costo
+              adicional para ti. Los precios y descuentos pueden variar después de publicados.
+            </p>
+          </div>
+        </div>
+
+        <div className="container footer-bottom">
+          © {new Date().getFullYear()} PromoAdictos — Las mejores ofertas de México
         </div>
       </footer>
 
@@ -988,25 +1007,9 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 </div>
                 
                 {/* Micro-badge de tienda */}
-                <div style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                  color: (selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "#FFE600" : "#FF9900",
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid rgba(255, 255, 255, 0.05)",
-                  padding: "0.35rem 0.85rem",
-                  borderRadius: "30px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem"
-                }}>
-                  <span style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: (selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "#FFE600" : "#FF9900",
-                  }} />
-                  {(selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "Mercado Libre" : "Amazon"}
+                <div className="store-micro-badge" style={{ color: storeInfo.color }}>
+                  <span className="store-micro-badge-dot" style={{ background: storeInfo.color }} />
+                  {storeInfo.name}
                 </div>
               </div>
 
@@ -1066,8 +1069,10 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
 
                 {/* Caja de gráfico interactivo */}
                 <div className="price-chart-box">
+                  {chartData.length > 0 ? (
+                  <>
                   <div className="price-chart-header">
-                    <span className="price-chart-title">Evolución de Precio (30 días)</span>
+                    <span className="price-chart-title">Evolución de Precio</span>
                     <span className="price-chart-hover-val">
                       {chartData[activeDotIndex] ? (
                         `Precio: $${chartData[activeDotIndex].price.toLocaleString("es-MX")}`
@@ -1174,6 +1179,13 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                       </button>
                     ))}
                   </div>
+                  </>
+                  ) : (
+                    <div className="price-chart-empty">
+                      <span className="price-chart-title">Precio verificado hoy</span>
+                      <p>Aún no tenemos suficiente historial para mostrar la evolución de este precio.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botón CTA gigante */}
@@ -1184,7 +1196,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   className="price-modal-btn"
                 >
                   <ShoppingBag size={18} strokeWidth={2.5} />
-                  <span>Comprar ahora en {(selectedOffer.affiliateUrl.includes("mercadolibre") || selectedOffer.affiliateUrl.includes("meli.la")) ? "Mercado Libre" : "Amazon"}</span>
+                  <span>Comprar ahora en {storeInfo.name}</span>
                 </a>
               </div>
             </div>

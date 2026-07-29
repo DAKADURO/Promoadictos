@@ -1,29 +1,25 @@
 "use client";
 
-const STORES = [
-  { name: "Mercado Libre", icon: "🛒" },
-  { name: "Amazon México", icon: "📦" },
-  { name: "Liverpool", icon: "🏬" },
-  { name: "Coppel", icon: "🏪" },
-  { name: "Walmart", icon: "🛍️" },
-  { name: "Best Buy", icon: "💻" },
-  { name: "Elektra", icon: "⚡" },
-  { name: "Sam's Club", icon: "🏷️" },
-  { name: "Costco", icon: "🛒" },
-  { name: "Office Depot", icon: "🖨️" },
-];
+import { Store } from "lucide-react";
+import { getStoreInfo } from "@/lib/store";
 
-export default function StoreMarquee() {
-  // Duplicate for seamless loop
-  const items = [...STORES, ...STORES];
+// Shows only the stores actually represented in the current catalog,
+// instead of a fixed aspirational list — so we never claim a partnership
+// with a retailer whose offers we don't actually publish.
+export default function StoreMarquee({ offers = [] }) {
+  const stores = [...new Set(offers.map((o) => getStoreInfo(o.affiliateUrl).name))];
+
+  if (stores.length < 2) return null;
+
+  const items = [...stores, ...stores];
 
   return (
-    <section className="marquee-section" aria-label="Tiendas asociadas">
+    <section className="marquee-section" aria-label="Tiendas con ofertas activas">
       <div className="marquee-track">
-        {items.map((store, i) => (
-          <div className="marquee-item" key={`${store.name}-${i}`}>
-            <span style={{ fontSize: "1.1rem" }}>{store.icon}</span>
-            {store.name}
+        {items.map((name, i) => (
+          <div className="marquee-item" key={`${name}-${i}`}>
+            <Store size={16} />
+            {name}
           </div>
         ))}
       </div>

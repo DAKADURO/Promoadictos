@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { BASE_CATEGORIES } from "@/lib/categories";
 
-const DEFAULT_CATEGORIES = ["Todas", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
+const DEFAULT_CATEGORIES = ["Todas", ...BASE_CATEGORIES, "Otros"];
 
-export default function CategoryFilter({ onFilter, categories = DEFAULT_CATEGORIES }) {
-  const [active, setActive] = useState("Todas");
-
+export default function CategoryFilter({ onFilter, categories = DEFAULT_CATEGORIES, active = "Todas" }) {
   const handleClick = (cat) => {
-    setActive(cat);
     onFilter?.(cat === "Todas" ? null : cat);
   };
 

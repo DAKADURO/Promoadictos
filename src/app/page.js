@@ -11,6 +11,7 @@ export default async function Home() {
 
   try {
     dbOffers = await prisma.offer.findMany({
+      where: { isActive: true },
       orderBy: [
         { isFeatured: "desc" },
         { createdAt: "desc" }
@@ -23,7 +24,7 @@ export default async function Home() {
         }
       }
     });
-    total = await prisma.offer.count();
+    total = await prisma.offer.count({ where: { isActive: true } });
   } catch (e) {
     console.error("Error fetching initial offers", e);
   }

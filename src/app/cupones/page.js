@@ -25,7 +25,6 @@ export default async function CuponesPage() {
   const serializedCoupons = coupons.map(c => ({
     ...c,
     createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
     expiryDate: c.expiryDate ? c.expiryDate.toISOString() : null,
   }));
 
