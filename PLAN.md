@@ -20,11 +20,11 @@
 ## Fase 2 — Ciclo de vida automático de ofertas
 **Modelo: Haiku 4.5 (subir a Sonnet si se complica)** · Esfuerzo: 1-2 sesiones
 
-- [ ] Agregar campos a `Offer`: `isActive Boolean @default(true)`, `lastCheckedAt DateTime?`, `failedChecks Int @default(0)`
-- [ ] Filtrar `isActive: true` en el GET público de ofertas (mantener todo visible en modo admin/legacy)
-- [ ] `check-links` automático: incrementa `failedChecks`; con 2-3 fallos consecutivos desactiva la oferta (no borrar, por si el link revive); resetear contador si el link responde
-- [ ] Regla de caducidad: desactivar ofertas con descuento < umbral (ej. 10%) o con más de N días publicadas (umbral por env var)
-- [ ] Cupones: job que desactiva los que pasaron su `expiryDate`
+- [x] Agregar campos a `Offer`: `isActive Boolean @default(true)`, `lastCheckedAt DateTime?`, `failedChecks Int @default(0)`
+- [x] Filtrar `isActive: true` en el GET público de ofertas (mantener todo visible en modo admin/legacy)
+- [x] `check-links` automático: incrementa `failedChecks`; con 2-3 fallos consecutivos desactiva la oferta (no borrar, por si el link revive); resetear contador si el link responde
+- [x] Regla de caducidad: desactivar ofertas con descuento < umbral (ej. 10%) o con más de N días publicadas (umbral por env var)
+- [x] Cupones: job que desactiva los que pasaron su `expiryDate`
 
 ## Fase 3 — Descubrimiento automático de ofertas (el corazón)
 **Modelo: Sonnet 5** · Esfuerzo: 3-5 sesiones
