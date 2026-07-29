@@ -384,63 +384,44 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     <>
       <Navbar onSearch={setSearch} offers={currentOffers} />
 
-      {/* ── HERO ────────────────────────────────── */}
+      {/* ── HERO COMPACTO Y DE ALTO IMPACTO ────────────────── */}
       <section className="hero animate-up">
         <div className="hero-container">
-          {/* Left side: Text & Stats */}
+          {/* Left side: Sales value proposition */}
           <div className="hero-left">
             <div className="badge">
               <span className="dot" />
-              Actualizado en tiempo real
+              Verificado & Actualizado Hoy
             </div>
 
-            <h1 className="hero-title font-display" style={{ textAlign: "inherit" }}>
-              Ofertas que otros
+            <h1 className="hero-title font-display">
+              Descuentos reales en
               <br />
-              <span className="gradient-text">no encuentran</span>
+              <span className="gradient-text">las mejores tiendas</span>
             </h1>
 
-            <p className="hero-sub" style={{ textAlign: "inherit", margin: "1rem 0 1.5rem" }}>
-              Rastreamos descuentos reales de las mejores tiendas de México.
-              Sin spam, sin relleno — solo gangas que valen la pena.
+            <p className="hero-sub">
+              Encontramos y verificamos precios bajos en Amazon, Mercado Libre, Liverpool y más.
             </p>
 
-            {/* Stats */}
-            <div className="stats-bar" style={{ justifyContent: "inherit" }}>
-              <div className="stat-item">
-                <Zap size={15} color="var(--clr-orange)" />
-                <span className="stat-value">{currentOffers.length}</span> ofertas activas
-              </div>
-              <div className="stat-item">
-                <ShieldCheck size={15} color="var(--clr-green)" />
-                <span className="stat-value">100%</span> verificadas
-              </div>
-              <div className="stat-item">
-                <Clock size={15} color="var(--clr-purple)" />
-                Actualizado <span className="stat-value">hoy</span>
-              </div>
+            <div className="hero-quick-tags">
+              <span className="hero-tag">🔥 {currentOffers.length} Ofertas activas</span>
+              <span className="hero-tag green">⚡ Enlaces 100% directos</span>
             </div>
           </div>
 
-          {/* Right side: 3D Spotlight Card */}
+          {/* Right side: Spotlight Deal */}
           {dealOfTheDay && (
             <div className="spotlight-card-wrapper">
               <div
                 className="spotlight-card"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
                 onClick={() => setSelectedOffer(dealOfTheDay)}
-                style={{
-                  transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg) scale3d(1.02, 1.02, 1.02)`,
-                  transition: rotate.x === 0 && rotate.y === 0 ? "transform 0.5s ease" : "none",
-                  cursor: "pointer"
-                }}
               >
                 <div className="spotlight-header">
                   <span className="spotlight-tag">
-                    ⚡ Oferta del Día
+                    ⚡ Oferta Destacada
                   </span>
-                  {dealOfTheDay.discount && (
+                  {dealOfTheDay.discount > 0 && (
                     <span className="spotlight-discount-badge">
                       -{dealOfTheDay.discount}% DCTO
                     </span>
@@ -475,14 +456,14 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 <div className="spotlight-timer-box">
                   <div className="spotlight-timer-label">
                     <Clock size={13} color="var(--clr-orange)" />
-                    Termina en:
+                    Expira en:
                   </div>
                   <div className="spotlight-timer-values">
                     {timeLeft}
                   </div>
                 </div>
 
-                {/* Action CTA */}
+                {/* Direct CTA */}
                 <a
                   href={dealOfTheDay.affiliateUrl}
                   target="_blank"
@@ -490,7 +471,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   onClick={(e) => e.stopPropagation()}
                   className="spotlight-btn"
                 >
-                  <span>Aprovechar Oferta</span>
+                  <span>Ver Oferta Directa</span>
                   <ArrowRight size={15} />
                 </a>
               </div>
@@ -499,88 +480,99 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
         </div>
       </section>
 
-      {/* ── MARQUEE ─────────────────────────────── */}
+      {/* ── MARQUEE TIENDAS ─────────────────────────────── */}
       <StoreMarquee offers={currentOffers} />
 
-      {/* ── PORTAL LAYOUT SECTION ────────────────── */}
-      <section className="portal-layout-section animate-up" style={{ padding: "2.5rem 0 7rem" }}>
+      {/* ── PORTAL FEED SECTION ────────────────── */}
+      <section className="portal-layout-section animate-up">
         <div className="container portal-layout-container">
           
           {/* MAIN PRODUCT FEED (LEFT COLUMN) */}
           <div className="portal-main-feed">
-            <div className="section-header" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-                <span className="section-dot" />
-                <span className="section-title">Ofertas Activas</span>
-              </div>
-              <span className="section-count-badge" style={{ fontSize: "0.8rem", color: "var(--clr-muted)" }}>
-                {filtered.length} producto{filtered.length !== 1 ? "s" : ""}
-              </span>
 
-              {/* Selector de ordenamiento premium */}
-              <div className="sort-selector-wrap" style={{ marginLeft: "auto" }}>
-                <span className="sort-label">Ordenar:</span>
-                <div className="sort-options">
-                  <button 
-                    className={`sort-btn ${sortBy === "hot" ? "active" : ""}`}
-                    onClick={() => setSortBy("hot")}
-                    id="sort-btn-hot"
+            {/* UNIFIED FILTER TOOLBAR */}
+            <div className="unified-filter-toolbar">
+
+              {/* Row 1: Category horizontal pills */}
+              <CategoryFilter
+                onFilter={(cat) => {
+                  setCategory(cat);
+                  setPage(1);
+                }}
+                categories={dynamicCategories}
+                active={category || "Todas"}
+              />
+
+              {/* Row 2: Controls bar (Store, Brand, Sort, Reset) */}
+              <div className="filter-controls-row">
+                <div className="filter-count">
+                  <strong>{filtered.length}</strong> {filtered.length === 1 ? "oferta" : "ofertas"}
+                </div>
+
+                <div className="filter-selects-wrap">
+                  {/* Select Tienda */}
+                  {dynamicStores.length > 0 && (
+                    <select
+                      className="filter-select"
+                      value={store || "Todas"}
+                      onChange={(e) => setStore(e.target.value === "Todas" ? null : e.target.value)}
+                      aria-label="Filtrar por tienda"
+                    >
+                      <option value="Todas">Todas las tiendas</option>
+                      {dynamicStores.filter(s => s !== "Todas").map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Select Marca */}
+                  {dynamicBrands.length > 0 && (
+                    <select
+                      className="filter-select"
+                      value={brand || "Todas"}
+                      onChange={(e) => setBrand(e.target.value === "Todas" ? null : e.target.value)}
+                      aria-label="Filtrar por marca"
+                    >
+                      <option value="Todas">Todas las marcas</option>
+                      {dynamicBrands.filter(b => b !== "Todas").map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Select Ordenar */}
+                  <select
+                    className="filter-select sort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label="Ordenar ofertas"
                   >
-                    🔥 Calientes
-                  </button>
-                  <button 
-                    className={`sort-btn ${sortBy === "price-asc" ? "active" : ""}`}
-                    onClick={() => setSortBy("price-asc")}
-                    id="sort-btn-price"
-                  >
-                    💵 Precio
-                  </button>
-                  <button 
-                    className={`sort-btn ${sortBy === "recent" ? "active" : ""}`}
-                    onClick={() => setSortBy("recent")}
-                    id="sort-btn-recent"
-                  >
-                    📅 Recientes
-                  </button>
+                    <option value="hot">🔥 Más Calientes</option>
+                    <option value="price-asc">💵 Menor Precio</option>
+                    <option value="recent">📅 Más Recientes</option>
+                  </select>
+
+                  {/* Clear Filters Button if any is active */}
+                  {(category || brand || store || search) && (
+                    <button
+                      className="filter-reset-btn"
+                      onClick={() => {
+                        setCategory(null);
+                        setBrand(null);
+                        setStore(null);
+                        setSearch("");
+                      }}
+                      title="Limpiar filtros"
+                    >
+                      <X size={14} />
+                      Limpiar
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Category filter */}
-            <CategoryFilter onFilter={setCategory} categories={dynamicCategories} active={category || "Todas"} />
-
-            {/* Store filter */}
-            {dynamicStores.length > 0 && (
-              <CategoryFilter
-                onFilter={setStore}
-                categories={dynamicStores}
-                active={store || "Todas"}
-                label="Filtrar por tienda"
-                idPrefix="store-filter"
-              />
-            )}
-
-            {/* Brand filter */}
-            {dynamicBrands.length > 0 && (
-              <div className="brand-filter">
-                <span className="brand-filter-label">Filtrar por marca</span>
-                <div className="brand-filter-pills">
-                  {dynamicBrands.map(b => {
-                    const isActive = (brand === b) || (b === "Todas" && !brand);
-                    return (
-                      <button
-                        key={b}
-                        onClick={() => setBrand(b === "Todas" ? null : b)}
-                        className={`brand-pill${isActive ? " active" : ""}`}
-                      >
-                        {b}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
+            {/* PRODUCT GRID */}
             {filtered.length > 0 ? (
               <>
                 <div className="offers-grid">
@@ -599,7 +591,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   ))}
                 </div>
                 {hasMore && !search && !category && !brand && (
-                  <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: "2.5rem" }}>
                     <button 
                       className="btn-primary" 
                       onClick={async () => {
@@ -623,104 +615,43 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                         }
                       }}
                       disabled={loadingMore}
-                      style={{ padding: "0.8rem 2rem", fontSize: "0.95rem" }}
+                      style={{ padding: "0.85rem 2.2rem", fontSize: "0.95rem" }}
                     >
-                      {loadingMore ? <Loader2 size={18} className="animate-spin" /> : "Cargar más ofertas"}
+                      {loadingMore ? <Loader2 size={18} className="animate-spin" /> : "Ver más ofertas"}
                     </button>
                   </div>
                 )}
               </>
             ) : (
               <div className="empty-state">
-                <Sparkles size={40} style={{ margin: "0 auto 1rem", opacity: 0.2 }} />
+                <Sparkles size={36} style={{ margin: "0 auto 0.75rem", opacity: 0.3 }} />
                 <p style={{ fontSize: "1rem", fontWeight: 600 }}>
-                  {search || category ? "No hay ofertas que coincidan" : "Rastreando gangas…"}
+                  {search || category || brand || store ? "No hay ofertas que coincidan" : "Rastreando gangas…"}
                 </p>
                 <p style={{ fontSize: "0.85rem", marginTop: "0.35rem", color: "var(--clr-dim)" }}>
-                  {search || category ? "Prueba con otro filtro o búsqueda" : "Pronto habrá ofertas increíbles"}
+                  {search || category || brand || store ? "Prueba con otros filtros o término de búsqueda" : "Pronto habrá ofertas increíbles"}
                 </p>
               </div>
             )}
           </div>
 
-          {/* PREMIUM SIDEBAR (RIGHT COLUMN) */}
+          {/* SALES-FOCUSED SIDEBAR (RIGHT COLUMN) */}
           {currentOffers.length > 0 && (
             <aside className="portal-sidebar">
-              {/* Savings dashboard */}
-              <div className="sidebar-section-header">
-                <span className="sidebar-section-dot purple" />
-                <span className="sidebar-section-title">Ahorro Colectivo</span>
-              </div>
-              <div className="savings-dashboard">
-                {/* Card 1: Total Savings */}
-                <div className="savings-card">
-                  <div className="savings-card-icon orange">
-                    <Coins size={22} />
-                  </div>
-                  <div className="savings-card-info">
-                    <span className="savings-card-label">Ahorro Disponible</span>
-                    <span className="savings-card-value highlight">
-                      ${savingsMetrics.totalSavings.toLocaleString("es-MX")} MXN
-                    </span>
-                    <span className="savings-card-desc">Bolsa acumulada hoy</span>
-                  </div>
-                </div>
 
-                {/* Card 2: Average Discount */}
-                <div className="savings-card">
-                  <div className="savings-card-icon purple">
-                    <BarChart3 size={22} />
-                  </div>
-                  <div className="savings-card-info">
-                    <span className="savings-card-label">Descuento Promedio</span>
-                    <span className="savings-card-value">
-                      {savingsMetrics.averageDiscount}% DTO
-                    </span>
-                    <span className="savings-card-desc">En toda la plataforma</span>
-                  </div>
-                </div>
-
-                {/* Card 3: Max Discount */}
-                <div className="savings-card">
-                  <div className="savings-card-icon red">
-                    <Flame size={22} />
-                  </div>
-                  <div className="savings-card-info">
-                    <span className="savings-card-label">Descuento Máximo</span>
-                    <span className="savings-card-value">
-                      {savingsMetrics.maxDiscountPercent}% DTO
-                    </span>
-                    <span className="savings-card-desc">Gangas de nivel volcánico</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hot Deals Grid */}
+              {/* Top Hot Deals Group */}
               {topHotOffers.length > 0 && (
                 <div className="sidebar-hot-deals-group">
-                  <div className="sidebar-section-header" style={{ marginTop: "2rem" }}>
+                  <div className="sidebar-section-header">
                     <span className="sidebar-section-dot orange" />
-                    <span className="sidebar-section-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      Ofertas Más Calientes <Flame size={18} color="var(--clr-orange)" className="animate-pulse" />
+                    <span className="sidebar-section-title" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      Top Descuentos <Flame size={16} color="var(--clr-orange)" />
                     </span>
                   </div>
 
                   <div className="hot-deals-grid">
                     {topHotOffers.map((offer) => {
                       const discount = offer.calculatedDiscount;
-                      let tempClass = "active";
-                      let tempLabel = "Flama Activa ⚡";
-                      let barClass = "active";
-                      
-                      if (discount >= 50) {
-                        tempClass = "volcanic";
-                        tempLabel = "Fuego Volcánico 🌋";
-                        barClass = "volcanic";
-                      } else if (discount >= 30) {
-                        tempClass = "hot";
-                        tempLabel = "Muy Caliente 🔥";
-                        barClass = "hot";
-                      }
 
                       return (
                         <div 
@@ -729,12 +660,11 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                           onClick={() => setSelectedOffer(offer)}
                         >
                           <div className="hot-deal-badge-row">
-                            <span className={`temperature-badge ${tempClass}`}>
-                              <span className="badge-dot" />
-                              {tempLabel}
+                            <span className="hot-deal-category-pill">
+                              {offer.category}
                             </span>
                             <span className="hot-deal-discount">
-                              -{discount}%
+                              -{discount}% DCTO
                             </span>
                           </div>
 
@@ -747,7 +677,6 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                               />
                             </div>
                             <div className="hot-deal-details">
-                              <span className="hot-deal-cat">{offer.category}</span>
                               <h3 className="hot-deal-title">{offer.title}</h3>
                               <div className="hot-deal-prices">
                                 <span className="hot-deal-price">
@@ -762,22 +691,6 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                             </div>
                           </div>
 
-                          {/* Thermometer container */}
-                          <div className="thermometer-container">
-                            <div className="thermometer-info">
-                              <span className="thermometer-label">Temperatura del descuento</span>
-                              <span className="thermometer-value">
-                                {discount}°C
-                              </span>
-                            </div>
-                            <div className="thermometer-wrap">
-                              <div 
-                                className={`thermometer-bar ${barClass}`}
-                                style={{ width: `${Math.min(100, Math.max(10, discount))}%` }}
-                              />
-                            </div>
-                          </div>
-
                           {/* CTA button */}
                           <a 
                             href={offer.affiliateUrl}
@@ -786,7 +699,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                             onClick={(e) => e.stopPropagation()}
                             className="hot-deal-btn"
                           >
-                            Ver en la tienda
+                            <span>Comprar oferta</span>
                             <ArrowRight size={14} />
                           </a>
                         </div>
@@ -796,18 +709,18 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 </div>
               )}
 
-              {/* Módulo de Suscripción Premium a Alertas */}
+              {/* Módulo de Suscripción a Alertas */}
               <div className="sidebar-subscribe-card">
                 {subscribeStatus === "success" ? (
                   <div className="subscribe-success-state">
                     <div className="subscribe-success-icon">
-                      <CheckCircle2 size={32} color="var(--clr-green)" />
+                      <CheckCircle2 size={28} color="var(--clr-green)" />
                     </div>
                     <h3 className="subscribe-success-title font-display">
-                      ¡Ya estás en el club! 🌋
+                      ¡Alertas activadas! ⚡
                     </h3>
                     <p className="subscribe-success-desc">
-                      Te notificaremos de las ofertas más calientes en cuanto se detecten. ¡Que comience la caza de gangas!
+                      Te notificaremos apenas detectemos descuentos importantes.
                     </p>
                     <button 
                       className="subscribe-reset-btn"

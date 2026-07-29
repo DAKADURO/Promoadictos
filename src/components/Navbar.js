@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { Lock, Search, CreditCard, Tag } from "lucide-react";
+import { Lock, Search, CreditCard, Tag, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 
@@ -34,7 +34,6 @@ export default function Navbar({ onSearch, offers = [] }) {
     ).slice(0, 5);
   }, [query, offers]);
 
-  // Reset activeIndex when query or suggestions change
   useEffect(() => {
     setActiveIndex(-1);
   }, [query, suggestions]);
@@ -69,13 +68,16 @@ export default function Navbar({ onSearch, offers = [] }) {
   return (
     <header className="glass-nav">
       <div className="container nav-inner">
-
         {/* Brand */}
         <Link href="/" className="nav-brand">
-          <Image src="/logo.png" alt="PromoAdictos" width={32} height={32} className="nav-brand-logo" />
+          <div className="nav-brand-logo-wrap">
+            <Image src="/logo.png" alt="PromoAdictos" width={34} height={34} className="nav-brand-logo" priority />
+          </div>
           <div>
-            <div className="nav-brand-name gradient-text">PromoAdictos</div>
-            <div className="nav-brand-tagline">Tu adicción a las ofertas</div>
+            <div className="nav-brand-name">
+              PROMO<span className="brand-accent">ADICTOS</span>
+            </div>
+            <div className="nav-brand-tagline">Descuentos Reales en México</div>
           </div>
         </Link>
 
@@ -84,7 +86,7 @@ export default function Navbar({ onSearch, offers = [] }) {
           <div className="nav-search" ref={containerRef}>
             <input
               type="text"
-              placeholder="Buscar ofertas…"
+              placeholder="Buscar marcas, productos u ofertas..."
               value={query}
               onChange={handleInput}
               onFocus={() => setShowDropdown(true)}
@@ -104,18 +106,14 @@ export default function Navbar({ onSearch, offers = [] }) {
                       href={offer.affiliateUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="nav-search-item"
+                      className={`nav-search-item${idx === activeIndex ? " active" : ""}`}
                       onClick={() => setShowDropdown(false)}
-                      style={{
-                        background: idx === activeIndex ? "rgba(255, 255, 255, 0.05)" : "",
-                        borderLeftColor: idx === activeIndex ? "var(--clr-orange)" : ""
-                      }}
                     >
                       <Image
                         src={offer.imageUrl || "/logo.png"}
                         alt={offer.title}
-                        width={40}
-                        height={40}
+                        width={38}
+                        height={38}
                         className="nav-search-thumb"
                         onError={(e) => { e.currentTarget.srcset = "/logo.png 1x"; e.currentTarget.src = "/logo.png"; }}
                       />
@@ -130,7 +128,7 @@ export default function Navbar({ onSearch, offers = [] }) {
                               ${parseFloat(offer.originalPrice).toLocaleString("es-MX")}
                             </span>
                           )}
-                          {offer.discount && (
+                          {offer.discount > 0 && (
                             <span className="nav-search-item-discount">
                               -{offer.discount}%
                             </span>
@@ -141,7 +139,7 @@ export default function Navbar({ onSearch, offers = [] }) {
                   ))
                 ) : (
                   <div className="nav-search-empty">
-                    No se encontraron ofertas para &quot;{query}&quot; ⚡
+                    No se encontraron ofertas para &quot;{query}&quot;
                   </div>
                 )}
               </div>
@@ -151,17 +149,17 @@ export default function Navbar({ onSearch, offers = [] }) {
 
         {/* Actions */}
         <div className="nav-actions">
-          <Link href="/cupones" className="nav-cupones-btn" id="nav-cupones-btn">
-            <Tag size={16} />
+          <Link href="/cupones" className="nav-pill-btn cupones" id="nav-cupones-btn">
+            <Tag size={15} />
             <span>Cupones</span>
           </Link>
-          <Link href="/terminales" className="nav-terminal-btn" id="nav-terminales-btn">
-            <CreditCard size={16} />
+          <Link href="/terminales" className="nav-pill-btn terminales" id="nav-terminales-btn">
+            <CreditCard size={15} />
             <span>Terminales Point</span>
           </Link>
           {session && (
             <Link href="/admin" className="btn-ghost" title="Admin" id="nav-admin-btn">
-              <Lock size={18} />
+              <Lock size={16} />
             </Link>
           )}
         </div>
@@ -169,3 +167,4 @@ export default function Navbar({ onSearch, offers = [] }) {
     </header>
   );
 }
+
