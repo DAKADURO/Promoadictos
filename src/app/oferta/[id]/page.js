@@ -26,10 +26,11 @@ export async function generateMetadata({ params }) {
 
   if (!offer || !offer.isActive) return {};
 
-  const title = `${offer.title} — $${offer.price.toLocaleString("es-MX")} MXN | PromoAdictos`;
+  const numericPrice = typeof offer.price === "number" ? offer.price : parseFloat(offer.price) || 0;
+  const title = `${offer.title} — $${numericPrice.toLocaleString("es-MX")} MXN | PromoAdictos`;
   const description =
     offer.description ||
-    `${offer.discount ? `${offer.discount}% de descuento` : "Oferta"} en ${getStoreInfo(offer.affiliateUrl).name}. Precio actual: $${offer.price.toLocaleString("es-MX")} MXN.`;
+    `${offer.discount ? `${offer.discount}% de descuento` : "Oferta"} en ${getStoreInfo(offer.affiliateUrl).name}. Precio actual: $${numericPrice.toLocaleString("es-MX")} MXN.`;
   const url = `https://promoadictos.com/oferta/${offer.id}`;
 
   return {

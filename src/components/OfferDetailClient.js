@@ -49,6 +49,9 @@ function ShareButtons({ title, url }) {
 }
 
 function RelatedOfferCard({ offer }) {
+  const priceNum = typeof offer.price === "number" ? offer.price : parseFloat(offer.price) || 0;
+  const origNum = offer.originalPrice ? (typeof offer.originalPrice === "number" ? offer.originalPrice : parseFloat(offer.originalPrice) || 0) : null;
+
   return (
     <Link href={`/oferta/${offer.id}`} className="offer-card related-offer-card">
       <div className="card-img-wrap">
@@ -68,9 +71,9 @@ function RelatedOfferCard({ offer }) {
         </div>
         <h3 className="card-title">{offer.title}</h3>
         <div className="card-pricing">
-          <span className="card-price">${offer.price.toLocaleString("es-MX")}</span>
-          {offer.originalPrice && (
-            <span className="card-original">${offer.originalPrice.toLocaleString("es-MX")}</span>
+          <span className="card-price">${priceNum.toLocaleString("es-MX")}</span>
+          {origNum && (
+            <span className="card-original">${origNum.toLocaleString("es-MX")}</span>
           )}
         </div>
       </div>
@@ -80,7 +83,9 @@ function RelatedOfferCard({ offer }) {
 
 export default function OfferDetailClient({ offer, related, storeInfo }) {
   const url = `https://promoadictos.com/oferta/${offer.id}`;
-  const savings = offer.originalPrice ? offer.originalPrice - offer.price : 0;
+  const priceNum = typeof offer.price === "number" ? offer.price : parseFloat(offer.price) || 0;
+  const origNum = offer.originalPrice ? (typeof offer.originalPrice === "number" ? offer.originalPrice : parseFloat(offer.originalPrice) || 0) : null;
+  const savings = origNum ? origNum - priceNum : 0;
 
   return (
     <div className="container offer-detail-page">
@@ -110,10 +115,10 @@ export default function OfferDetailClient({ offer, related, storeInfo }) {
           {offer.description && <p className="offer-detail-description">{offer.description}</p>}
 
           <div className="price-modal-pricing" style={{ marginTop: "0.5rem" }}>
-            <span className="price-modal-price">${offer.price.toLocaleString("es-MX")}</span>
-            {offer.originalPrice && (
+            <span className="price-modal-price">${priceNum.toLocaleString("es-MX")}</span>
+            {origNum && (
               <>
-                <span className="price-modal-original">${offer.originalPrice.toLocaleString("es-MX")}</span>
+                <span className="price-modal-original">${origNum.toLocaleString("es-MX")}</span>
                 <span className="price-modal-savings">Ahorras ${savings.toLocaleString("es-MX")}</span>
               </>
             )}
