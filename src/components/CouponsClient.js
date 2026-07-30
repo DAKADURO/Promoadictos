@@ -39,21 +39,29 @@ export default function CouponsClient({ initialCoupons = [] }) {
     }
   }, [initialCoupons]);
 
-  // Copy handler
-  const handleCopy = (id, code) => {
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Copy handler + Auto redirect to affiliate store
+  const handleCopy = (id, code, link) => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code)
         .then(() => {
           setCopiedId(id);
-          setTimeout(() => setCopiedId(null), 2000);
+          setToastMessage(`¡Cupón ${code} copiado! Abriendo tienda...`);
+          setTimeout(() => setToastMessage(null), 3000);
+          setTimeout(() => setCopiedId(null), 2500);
+
+          if (link) {
+            setTimeout(() => {
+              window.open(link, "_blank", "noopener,noreferrer");
+            }, 350);
+          }
         })
-        .catch(err => {
-          console.error("Failed to copy text: ", err);
-          alert("No se pudo copiar el cupón. Por favor, intenta de nuevo.");
+        .catch(() => {
+          if (link) window.open(link, "_blank", "noopener,noreferrer");
         });
     } else {
-      // Fallback for older browsers
-      alert(`Código: ${code}`);
+      if (link) window.open(link, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -206,12 +214,12 @@ export default function CouponsClient({ initialCoupons = [] }) {
                         {/* Copy Code Button */}
                         <button
                           className={`coupon-copy-btn ${copiedId === coupon.id ? "copied" : ""}`}
-                          onClick={() => handleCopy(coupon.id, coupon.code)}
+                          onClick={() => handleCopy(coupon.id, coupon.code, coupon.link)}
                         >
                           {copiedId === coupon.id ? (
                             <>
                               <Check size={15} />
-                              <span>¡Copiado!</span>
+                              <span>¡Copiado y Abriendo!</span>
                             </>
                           ) : (
                             <>
@@ -244,6 +252,29 @@ export default function CouponsClient({ initialCoupons = [] }) {
               <p style={{ fontSize: "0.85rem", marginTop: "0.35rem", color: "var(--clr-dim)" }}>
                 Prueba buscando por otra tienda o eliminando los filtros aplicados.
               </p>
+            </div>
+          )}
+
+          {/* Floating Toast Notification for 1-Click Copy */}
+          {toastMessage && (
+            <div style={{
+              position: "fixed",
+              bottom: "2rem",
+              right: "2rem",
+              background: "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
+              color: "#fff",
+              padding: "0.85rem 1.35rem",
+              borderRadius: "12px",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              boxShadow: "0 10px 30px rgba(255,92,0,0.4)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem"
+            }}>
+              <Check size={18} />
+              {toastMessage}
             </div>
           )}
 

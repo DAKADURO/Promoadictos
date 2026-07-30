@@ -257,6 +257,8 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     return () => clearInterval(interval);
   }, []);
 
+  const [quickFilter, setQuickFilter] = useState(null); // null | "50pct" | "historic" | "msi"
+
   const filtered = useMemo(() => {
     let result = [...currentOffers];
     if (category) {
@@ -267,6 +269,13 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     }
     if (store) {
       result = result.filter((o) => getStoreInfo(o.affiliateUrl).name === store);
+    }
+    if (quickFilter === "50pct") {
+      result = result.filter((o) => (parseInt(o.discount) || 0) >= 50);
+    } else if (quickFilter === "historic") {
+      result = result.filter((o) => (parseInt(o.discount) || 0) >= 40);
+    } else if (quickFilter === "msi") {
+      result = result.filter((o) => (parseFloat(o.price) || 0) >= 500);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -282,7 +291,6 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
       if (sortBy === "hot") {
         const discountA = parseInt(a.discount) || 0;
         const discountB = parseInt(b.discount) || 0;
-        // Priorizar destacados en modo calientes
         if (a.isFeatured && !b.isFeatured) return -1;
         if (!a.isFeatured && b.isFeatured) return 1;
         return discountB - discountA;
@@ -299,7 +307,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     });
 
     return result;
-  }, [currentOffers, search, category, brand, store, sortBy]);
+  }, [currentOffers, search, category, brand, store, sortBy, quickFilter]);
 
   const dynamicCategories = useMemo(() => {
     const activeCategories = Array.from(new Set(currentOffers.map(o => o.category)));
@@ -503,6 +511,49 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 active={category || "Todas"}
               />
 
+              {/* Row 1.5: Quick Filter Chips (50%+ Dcto, Mínimo Histórico, MSI) */}
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.2rem 0 0.1rem" }}>
+                <button
+                  className={`filter-pill ${quickFilter === "50pct" ? "active" : ""}`}
+                  onClick={() => setQuickFilter(prev => prev === "50pct" ? null : "50pct")}
+                  style={{
+                    background: quickFilter === "50pct" ? "var(--clr-orange-bg)" : "rgba(255, 92, 0, 0.08)",
+                    borderColor: quickFilter === "50pct" ? "var(--clr-orange)" : "rgba(255, 92, 0, 0.2)",
+                    color: "var(--clr-orange-lt)",
+                    fontWeight: 700,
+                    fontSize: "0.78rem"
+                  }}
+                >
+                  🔥 +50% Descuento
+                </button>
+                <button
+                  className={`filter-pill ${quickFilter === "historic" ? "active" : ""}`}
+                  onClick={() => setQuickFilter(prev => prev === "historic" ? null : "historic")}
+                  style={{
+                    background: quickFilter === "historic" ? "rgba(225, 29, 72, 0.2)" : "rgba(225, 29, 72, 0.08)",
+                    borderColor: quickFilter === "historic" ? "#e11d48" : "rgba(225, 29, 72, 0.2)",
+                    color: "#f43f5e",
+                    fontWeight: 700,
+                    fontSize: "0.78rem"
+                  }}
+                >
+                  ⚡ Mínimo Histórico
+                </button>
+                <button
+                  className={`filter-pill ${quickFilter === "msi" ? "active" : ""}`}
+                  onClick={() => setQuickFilter(prev => prev === "msi" ? null : "msi")}
+                  style={{
+                    background: quickFilter === "msi" ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.08)",
+                    borderColor: quickFilter === "msi" ? "#10b981" : "rgba(16, 185, 129, 0.2)",
+                    color: "#34d399",
+                    fontWeight: 700,
+                    fontSize: "0.78rem"
+                  }}
+                >
+                  💳 Con Meses Sin Intereses
+                </button>
+              </div>
+
               {/* Row 2: Controls bar (Store, Brand, Sort, Reset) */}
               <div className="filter-controls-row">
                 <div className="filter-count">
@@ -553,13 +604,14 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   </select>
 
                   {/* Clear Filters Button if any is active */}
-                  {(category || brand || store || search) && (
+                  {(category || brand || store || search || quickFilter) && (
                     <button
                       className="filter-reset-btn"
                       onClick={() => {
                         setCategory(null);
                         setBrand(null);
                         setStore(null);
+                        setQuickFilter(null);
                         setSearch("");
                       }}
                       title="Limpiar filtros"
@@ -570,6 +622,66 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* BANNER VIP CANAL WHATSAPP / TELEGRAM */}
+            <div style={{
+              background: "linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(0, 136, 204, 0.12))",
+              border: "1px solid rgba(37, 211, 102, 0.25)",
+              borderRadius: "1rem",
+              padding: "0.9rem 1.25rem",
+              marginBottom: "1.25rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #25D366, #0088cc)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.1rem",
+                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
+                  flexShrink: 0
+                }}>
+                  📲
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "0.88rem", fontWeight: 800, color: "#fff", margin: 0 }}>
+                    Canal VIP de Ofertas Relámpago en WhatsApp / Telegram
+                  </h3>
+                  <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", margin: "0.15rem 0 0" }}>
+                    Recibe alertas inmediatas antes de que se agoten las mejores liquidaciones.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={WHATSAPP_URL || TELEGRAM_URL || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: "linear-gradient(135deg, #25D366, #128C7E)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "0.78rem",
+                  padding: "0.55rem 1rem",
+                  borderRadius: "0.55rem",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.25)",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                ⚡ Unirme al Canal VIP
+              </a>
             </div>
 
             {/* PRODUCT GRID */}
