@@ -46,9 +46,9 @@
 ## Fase 5 — Panel de control de automatización
 **Modelo: Sonnet 5** (por el tamaño de `admin/page.js`: ~2,300 líneas) · Esfuerzo: 1-2 sesiones
 
-- [ ] Pestaña "Automatización" en el admin: historial de `JobLog`, ejecución manual de cada job, switch activar/pausar
-- [ ] Modelo Prisma `Setting` (clave-valor) para umbrales editables desde el admin
-- [ ] Email de alerta al admin si un job falla repetido o el descubrimiento trae 0 resultados varios días (señal de cambio en ML)
+- [x] Pestaña "Automatización" en el admin (`AutomationPanel`, `/api/admin/automation`): historial de `JobLog`, ejecución manual de cada job, switch pausar/reanudar
+- [x] Modelo Prisma `Setting` (clave-valor) para umbrales editables desde el admin (BD > variable de entorno > defecto; `src/lib/settings.js`)
+- [x] Email de alerta al admin si un job falla 3 veces seguidas o el descubrimiento trae 0 resultados 4 veces seguidas (`src/lib/alerts.js`; destino `ADMIN_ALERT_EMAIL` o `SMTP_USER`; 1 aviso por tema cada 24 h)
 
 ---
 

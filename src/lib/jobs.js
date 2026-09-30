@@ -1,6 +1,8 @@
 import cron from "node-cron";
 import { prisma } from "@/lib/db";
 import { sendDailyDigest } from "@/lib/digest";
+import { isJobPaused } from "@/lib/settings";
+import { evaluateAlerts } from "@/lib/alerts";
 
 // Registry of scheduled jobs with their cron expressions and handlers.
 // Configured via environment variables:
@@ -46,6 +48,11 @@ const JOBS = [
 
 let scheduledTasks = [];
 
+/** Nombre y horario de cada job (para el panel del admin). */
+export function listJobs() {
+  return JOBS.map((j) => ({ name: j.name, schedule: j.schedule }));
+}
+
 /**
  * Start the job scheduler.
  * Should be called once from instrumentation.ts on server startup.
@@ -63,8 +70,13 @@ export function startJobScheduler() {
   for (const job of JOBS) {
     try {
       const task = cron.schedule(job.schedule, async () => {
+        if (await isJobPaused(job.name)) {
+          console.log(`[Jobs] Skipped (paused): ${job.name}`);
+          return;
+        }
         console.log(`[Jobs] Running: ${job.name}`);
         await runJobWithLogging(job.name, job.handler);
+        await evaluateAlerts(job.name);
       });
 
       scheduledTasks.push({ name: job.name, task });

@@ -85,3 +85,11 @@ model JobLog {
   @@index([job])
   @@index([createdAt])
 }
+
+// Ajustes editables desde el admin (umbrales y pausa de jobs). El valor de la
+// BD tiene prioridad sobre la variable de entorno equivalente.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

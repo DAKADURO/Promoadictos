@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { authorizeCron } from "@/lib/cronAuth";
+import { getSettingValue } from "@/lib/settings";
 import { NextResponse } from "next/server";
 import { scrapeProduct } from "@/lib/scraper";
 import { extractProductId } from "@/lib/productId";
@@ -48,13 +49,13 @@ export async function GET(req) {
 
   try {
     // Quality/quota thresholds (all configurable via env vars).
-    const MIN_DISCOUNT = parseInt(process.env.DISCOVER_MIN_DISCOUNT || "20", 10);
+    const MIN_DISCOUNT = await getSettingValue("DISCOVER_MIN_DISCOUNT");
     const MAX_PER_CATEGORY = parseInt(process.env.DISCOVER_MAX_PER_CATEGORY || "5", 10);
-    const MAX_NEW_PER_DAY = parseInt(process.env.DISCOVER_MAX_NEW_PER_DAY || "20", 10);
+    const MAX_NEW_PER_DAY = await getSettingValue("DISCOVER_MAX_NEW_PER_DAY");
     const AUTO_FEATURE_TOP_N = parseInt(process.env.DISCOVER_AUTO_FEATURE_TOP_N || "0", 10);
     // Switch: once discovery quality is trusted, flip this to publish offers
     // directly (isActive: true) instead of landing them as drafts.
-    const AUTO_PUBLISH = process.env.DISCOVER_AUTO_PUBLISH === "true";
+    const AUTO_PUBLISH = await getSettingValue("DISCOVER_AUTO_PUBLISH");
 
     // Rolling 24h window so a 2x/day schedule still respects the daily cap.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);

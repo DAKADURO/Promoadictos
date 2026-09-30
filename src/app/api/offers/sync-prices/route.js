@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { authorizeCron } from "@/lib/cronAuth";
+import { getSettingValue } from "@/lib/settings";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { scrapeProduct, getSimilarity } from "@/lib/scraper";
@@ -9,7 +10,6 @@ const CONCURRENCY_LIMIT = 5;
 
 // Veces seguidas que una oferta debe verse pausada/agotada/fuera de lista
 // antes de desactivarse (evita desactivar por un fallo momentáneo).
-const MAX_UNAVAILABLE_CHECKS = parseInt(process.env.MAX_UNAVAILABLE_CHECKS || "3", 10);
 
 /**
  * Registra una comprobación "no disponible". Desactiva la oferta (no la borra)
@@ -18,7 +18,8 @@ const MAX_UNAVAILABLE_CHECKS = parseInt(process.env.MAX_UNAVAILABLE_CHECKS || "3
 // Si solo el título no coincide (p. ej. el admin lo editó) se exige más tiempo.
 const MAX_MISMATCH_CHECKS = parseInt(process.env.MAX_MISMATCH_CHECKS || "8", 10);
 
-async function markUnavailable(offer, reason, threshold = MAX_UNAVAILABLE_CHECKS) {
+async function markUnavailable(offer, reason, threshold) {
+  if (threshold === undefined) threshold = await getSettingValue("MAX_UNAVAILABLE_CHECKS");
   if (!offer.isActive) {
     return { id: offer.id, title: offer.title, status: "skipped", reason };
   }
