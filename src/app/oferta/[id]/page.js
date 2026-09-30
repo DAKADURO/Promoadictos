@@ -99,7 +99,7 @@ export default async function OfertaPage({ params }) {
   return (
     <>
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <OfferDetailClient offer={offer} related={related} storeInfo={storeInfo} />
     </>
   );

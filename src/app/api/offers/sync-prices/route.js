@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { auth } from "@/auth";
+import { authorizeCron } from "@/lib/cronAuth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { scrapeProduct, getSimilarity } from "@/lib/scraper";
@@ -8,24 +8,8 @@ import { scrapeProduct, getSimilarity } from "@/lib/scraper";
 const CONCURRENCY_LIMIT = 5;
 
 export async function GET(req) {
-  // 1. Authentication Check (Hybrid: Session or Cron Secret)
-  const session = await auth();
-
-  if (!session) {
-    const { searchParams } = new URL(req.url);
-    const secretParam = searchParams.get("secret");
-    // FIX #1: Never fall back to a hardcoded secret — must be set in .env
-    const configuredSecret = process.env.CRON_SECRET;
-
-    if (!configuredSecret) {
-      console.error("CRON_SECRET is not set in environment variables.");
-      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
-    }
-
-    if (!secretParam || secretParam !== configuredSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const denied = await authorizeCron(req);
+  if (denied) return denied;
 
   try {
     // 2. Fetch all active offers

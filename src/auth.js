@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { clientIp, isBlocked, recordFailure, clearFailures } from "@/lib/rateLimit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -18,7 +19,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         username: { label: "Usuario", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
+        // Freno a la fuerza bruta: 5 fallos cada 15 min por IP
+        const key = `login:${clientIp(request?.headers)}`;
+        const policy = { limit: 5, windowMs: 15 * 60 * 1000 };
+        if (isBlocked(key, policy)) {
+          console.warn(`[Security] Login bloqueado temporalmente (${key})`);
+          return null;
+        }
+
         const adminUser = process.env.ADMIN_USER;
         const adminHash = process.env.ADMIN_PASSWORD_HASH;
 
@@ -27,19 +36,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        if (credentials?.username !== adminUser) {
-          return null;
-        }
+        // Siempre se compara el hash, exista o no el usuario, para no
+        // revelar por tiempo de respuesta si el usuario es válido.
+        const isValid = await bcrypt.compare(String(credentials?.password ?? ""), adminHash);
 
-        const isValid = await bcrypt.compare(
-          String(credentials.password),
-          adminHash
-        );
-
-        if (isValid) {
+        if (credentials?.username === adminUser && isValid) {
+          clearFailures(key);
           return { id: "1", name: adminUser };
         }
 
+        recordFailure(key);
         return null;
       },
     }),
