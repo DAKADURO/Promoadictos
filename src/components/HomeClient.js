@@ -11,7 +11,7 @@ import Navbar from "@/components/Navbar";
 import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2, MessageCircle, Send } from "lucide-react";
 import { getStoreInfo } from "@/lib/store";
 import { BASE_CATEGORIES } from "@/lib/categories";
-import { isRealHistoricLow, hasRealDiscount, ctaLabel, timeAgo, trackOfferClick } from "@/lib/offerSignals";
+import { isRealHistoricLow, hasRealDiscount, ctaLabel, timeAgo, isFresh, trackOfferClick } from "@/lib/offerSignals";
 
 const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
 const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL || "";
@@ -348,7 +348,8 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
   const lastVerified = useMemo(() => {
     const times = currentOffers.map((o) => (o.lastCheckedAt ? new Date(o.lastCheckedAt).getTime() : 0));
     const latest = Math.max(0, ...times);
-    return latest ? timeAgo(latest) : null;
+    // Si el dato es viejo (>48 h) no se presume frescura
+    return latest && Date.now() - latest < 48 * 3600 * 1000 ? timeAgo(latest) : null;
   }, [currentOffers]);
 
   // ── TOP 3 HOT DEALS ──────────────────────────
@@ -445,7 +446,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   </div>
                 </div>
 
-                {timeAgo(dealOfTheDay.lastCheckedAt) && (
+                {isFresh(dealOfTheDay.lastCheckedAt) && (
                   <div className="spotlight-timer-box">
                     <div className="spotlight-timer-label">
                       <Clock size={13} color="var(--clr-orange)" />

@@ -53,6 +53,13 @@ export function timeAgo(date) {
   return `hace ${Math.floor(h / 24)} d`;
 }
 
+// Verificación reciente (<48 h); si es más vieja no se muestra como "verificado".
+export function isFresh(date, maxHours = 48) {
+  if (!date) return false;
+  const ms = Date.now() - new Date(date).getTime();
+  return Number.isFinite(ms) && ms >= 0 && ms < maxHours * 3600 * 1000;
+}
+
 // Clic saliente hacia la tienda. Se manda a Google Analytics como
 // `offer_click` (márcalo como evento clave en GA4 para medir conversión).
 export function trackOfferClick(offer, placement) {
