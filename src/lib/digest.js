@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
+import { unsubscribeUrl } from "@/lib/unsubscribe";
 
 const BATCH_SIZE = parseInt(process.env.DIGEST_BATCH_SIZE || "50", 10);
 const MAX_OFFERS = parseInt(process.env.DIGEST_MAX_OFFERS || "8", 10);
@@ -9,7 +10,7 @@ const esc = (s) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const money = (n) => `$${Number(n).toLocaleString("es-MX", { maximumFractionDigits: 0 })}`;
 
-function buildHtml(offers) {
+function buildHtml(offers, unsubUrl) {
   const site = process.env.NEXTAUTH_URL || "";
   const items = offers
     .map(
@@ -28,6 +29,10 @@ function buildHtml(offers) {
     <h1 style="color:#E94B5E;text-align:center;">Las mejores ofertas de hoy 🔥</h1>
     <table width="100%" cellspacing="0" cellpadding="0">${items}</table>
     ${site ? `<p style="text-align:center;margin-top:24px;"><a href="${esc(site)}">Ver todas en Promoadictos</a></p>` : ""}
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:#888;">
+      Recibes este correo porque te suscribiste en Promoadictos.
+      <a href="${esc(unsubUrl)}" style="color:#888;">Darme de baja</a>
+    </p>
   </div>`;
 }
 
@@ -55,37 +60,54 @@ export async function sendDailyDigest() {
   const subscribers = await prisma.subscriber.findMany({ where: { isActive: true }, select: { email: true } });
   if (subscribers.length === 0) return { skipped: "no subscribers" };
 
+  // Sin enlace de baja no se envía (obligación legal y de confianza).
+  if (!unsubscribeUrl("test@example.com")) {
+    return { skipped: "NEXTAUTH_URL o NEXTAUTH_SECRET/UNSUBSCRIBE_SECRET no definidos: no se puede generar el enlace de baja" };
+  }
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === "true",
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    pool: true,
+    maxConnections: 3,
   });
 
-  const html = buildHtml(offers);
   const emails = subscribers.map((s) => s.email);
   let sent = 0;
-  let failedBatches = 0;
+  let failed = 0;
   let lastError = null;
 
+  // Un correo por destinatario (cada uno lleva su propio enlace de baja),
+  // en lotes para no saturar el SMTP.
   for (let i = 0; i < emails.length; i += BATCH_SIZE) {
     const batch = emails.slice(i, i + BATCH_SIZE);
-    try {
-      await transporter.sendMail({
-        from: `"Promoadictos" <${process.env.SMTP_USER}>`,
-        to: process.env.SMTP_USER,
-        bcc: batch,
-        subject: "Las mejores ofertas de hoy 🔥",
-        html,
-      });
-      sent += batch.length;
-    } catch (err) {
-      failedBatches++;
-      lastError = err.message;
+    const results = await Promise.allSettled(
+      batch.map((email) => {
+        const unsub = unsubscribeUrl(email);
+        return transporter.sendMail({
+          from: `"Promoadictos" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: "Las mejores ofertas de hoy 🔥",
+          html: buildHtml(offers, unsub),
+          headers: {
+            "List-Unsubscribe": `<${unsub}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        });
+      })
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled") sent++;
+      else {
+        failed++;
+        lastError = r.reason?.message || String(r.reason);
+      }
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  if (sent === 0) throw new Error(`Digest failed for all batches: ${lastError}`);
-  return { offers: offers.length, recipients: sent, failedBatches };
+  if (sent === 0) throw new Error(`Digest failed for all recipients: ${lastError}`);
+  return { offers: offers.length, recipients: sent, failed };
 }
