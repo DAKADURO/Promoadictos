@@ -39,8 +39,8 @@
 ## Fase 4 — Comunicación automática
 **Modelo: Haiku 4.5** · Esfuerzo: 1 sesión
 
-- [ ] Reemplazar email por-oferta con **digest diario** ("Las mejores ofertas de hoy") como job programado
-- [ ] Enviar en lotes de ~50 destinatarios (el BCC único actual revienta límites SMTP al crecer la lista)
+- [x] Reemplazar email por-oferta con **digest diario** ("Las mejores ofertas de hoy") como job programado (`src/lib/digest.js`, job `daily-digest`, `DAILY_DIGEST_SCHEDULE`)
+- [x] Enviar en lotes de ~50 (`DIGEST_BATCH_SIZE`) destinatarios (el BCC único actual revienta límites SMTP al crecer la lista)
 - [ ] Opcional: bot de Telegram que publica cada oferta destacada en un canal
 
 ## Fase 5 — Panel de control de automatización

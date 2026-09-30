@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { prisma } from "@/lib/db";
+import { sendDailyDigest } from "@/lib/digest";
 
 // Registry of scheduled jobs with their cron expressions and handlers.
 // Configured via environment variables:
@@ -8,6 +9,7 @@ import { prisma } from "@/lib/db";
 // - AUTO_DEACTIVATE_SCHEDULE (default: "0 2 * * *" = daily at 2 AM)
 // - DEACTIVATE_COUPONS_SCHEDULE (default: "0 3 * * *" = daily at 3 AM)
 // - DISCOVER_OFFERS_SCHEDULE (default: "0 8,20 * * *" = 8 AM and 8 PM)
+// - DAILY_DIGEST_SCHEDULE (default: "0 15 * * *" = 15:00 UTC, 9 AM Mexico City)
 // - JOBS_ENABLED (default: "true")
 const JOBS = [
   {
@@ -34,6 +36,11 @@ const JOBS = [
     name: "discover-offers",
     schedule: process.env.DISCOVER_OFFERS_SCHEDULE || "0 8,20 * * *",
     handler: discoverOffers
+  },
+  {
+    name: "daily-digest",
+    schedule: process.env.DAILY_DIGEST_SCHEDULE || "0 15 * * *",
+    handler: sendDailyDigest
   }
 ];
 
