@@ -11,7 +11,7 @@ import Navbar from "@/components/Navbar";
 import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2, MessageCircle, Send } from "lucide-react";
 import { getStoreInfo } from "@/lib/store";
 import { BASE_CATEGORIES } from "@/lib/categories";
-import { isRealHistoricLow, hasRealDiscount, ctaLabel, timeAgo, isFresh, trackOfferClick } from "@/lib/offerSignals";
+import { getDiscount, isRealHistoricLow, hasRealDiscount, ctaLabel, timeAgo, isFresh, trackOfferClick } from "@/lib/offerSignals";
 
 const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
 const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL || "";
@@ -170,8 +170,10 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
 
   // ── SPOTLIGHT DEAL OF THE DAY ──────────────────
   const dealOfTheDay = useMemo(() => {
-    if (!currentOffers.length) return null;
-    const sorted = [...currentOffers].sort((a, b) => {
+    // El destacado siempre lleva descuento real comprobable
+    const candidates = currentOffers.filter(hasRealDiscount);
+    if (!candidates.length) return null;
+    const sorted = [...candidates].sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
       return (b.discount || 0) - (a.discount || 0);
@@ -199,8 +201,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
   };
 
   useEffect(() => {
-    // Solo se muestran ofertas con descuento real comprobable
-    setCurrentOffers(offers.filter(hasRealDiscount));
+    setCurrentOffers(offers);
   }, [offers]);
 
   useEffect(() => {
@@ -261,8 +262,11 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     // Ordenar según criterio
     result.sort((a, b) => {
       if (sortBy === "hot") {
-        const discountA = parseInt(a.discount) || 0;
-        const discountB = parseInt(b.discount) || 0;
+        const discountA = getDiscount(a);
+        const discountB = getDiscount(b);
+        // Las ofertas sin descuento comprobable van siempre al final
+        if (discountA > 0 && discountB === 0) return -1;
+        if (discountA === 0 && discountB > 0) return 1;
         if (a.isFeatured && !b.isFeatured) return -1;
         if (!a.isFeatured && b.isFeatured) return 1;
         return discountB - discountA;
@@ -399,7 +403,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
             </p>
 
             <div className="hero-quick-tags">
-              <span className="hero-tag">🔥 {currentOffers.length} Ofertas activas</span>
+              <span className="hero-tag">🔥 {currentOffers.filter(hasRealDiscount).length} Ofertas con descuento</span>
               <span className="hero-tag green">✅ Compras directo en la tienda</span>
             </div>
           </div>
