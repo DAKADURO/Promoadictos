@@ -70,3 +70,4 @@
 - [x] Títulos cortos y CTA con nombre de la tienda ("Ver en Mercado Libre")
 - [ ] **Diversificar tiendas:** hoy `discover-offers` solo trae Mercado Libre. Pendiente: Amazon Associates y otras tiendas con programa de afiliados (el texto del hero ya lista solo las tiendas que realmente hay)
 - [ ] Probar el parámetro de afiliado (`matt_tool`/`matt_word`) con una compra de prueba antes de usarlo (ver análisis en la conversación)
+- [x] Detección de productos pausados, agotados o fuera de lista: `sync-prices` lee `status`/`available_quantity` de la API de ML y desactiva la oferta tras `MAX_UNAVAILABLE_CHECKS` (3) comprobaciones seguidas; título que ya no coincide, tras `MAX_MISMATCH_CHECKS` (8). Campo nuevo `Offer.unavailableChecks`.

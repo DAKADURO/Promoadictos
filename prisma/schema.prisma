@@ -25,6 +25,7 @@ model Offer {
   isActive      Boolean  @default(true)
   lastCheckedAt DateTime?
   failedChecks  Int      @default(0)
+  unavailableChecks Int  @default(0) // sync-prices: veces seguidas pausada/agotada/fuera de lista
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   priceHistories PriceHistory[]

@@ -285,6 +285,16 @@ function mapMercadoLibreCategory(path) {
  * resolves redirection, extracts target attributes (price, originalPrice, etc.),
  * and returns details.
  */
+// Disponibilidad según la API de ML: true/false, o null si no se pudo saber.
+function itemAvailability(item) {
+  if (!item || typeof item !== "object") return { available: null, itemStatus: null };
+  const status = item.status || null;
+  const qty = typeof item.available_quantity === "number" ? item.available_quantity : null;
+  if (status && status !== "active") return { available: false, itemStatus: status };
+  if (qty !== null && qty <= 0) return { available: false, itemStatus: "sold_out" };
+  return { available: status === "active" ? true : null, itemStatus: status };
+}
+
 export async function scrapeProduct(targetUrl, expectedTitle = null) {
   if (!targetUrl) {
     throw new Error("Missing url parameter");
@@ -314,6 +324,7 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
     // Extract details from Nordic State JSON
     const state = extractNordicState(html);
     let details = { title: "", price: null, originalPrice: null, discount: null, imageUrl: imageUrl, categoryId: null, brand: "" };
+    let availability = { available: null, itemStatus: null };
 
     if (state) {
       const allProducts = findAllProductDetails(state);
@@ -357,6 +368,7 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
           });
           if (apiRes.ok) {
             const item = await apiRes.json();
+            availability = itemAvailability(item);
             if (!details.title) details.title = item.title;
             if (!details.price) details.price = item.price;
             if (!details.originalPrice) details.originalPrice = item.original_price || null;
@@ -419,6 +431,7 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
       affiliateUrl: targetUrl, // Keep original affiliate link
       category: detectedCategory,
       brand: details.brand,
+      ...availability,
     };
   }
 
@@ -432,7 +445,9 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
       headers: await getMlAuthHeader(),
     });
     if (!apiRes.ok) {
-      throw new Error(`Failed to fetch item from Mercado Libre API. Status: ${apiRes.status}`);
+      const err = new Error(`Failed to fetch item from Mercado Libre API. Status: ${apiRes.status}`);
+      err.httpStatus = apiRes.status;
+      throw err;
     }
 
     const item = await apiRes.json();
@@ -479,6 +494,7 @@ export async function scrapeProduct(targetUrl, expectedTitle = null) {
       affiliateUrl: targetUrl,
       category: detectedCategory,
       brand: brand,
+      ...itemAvailability(item),
     };
   }
 
