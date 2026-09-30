@@ -138,7 +138,7 @@ async function processOffer(offer) {
       if (priceChanged || originalPriceChanged || discountChanged) {
         await prisma.offer.update({
           where: { id: offer.id },
-          data: { price: newPrice, originalPrice, discount }
+          data: { price: newPrice, originalPrice, discount, lastCheckedAt: new Date() }
         });
 
         // P1: Record price history if the actual price changed
@@ -153,6 +153,9 @@ async function processOffer(offer) {
 
         return { id: offer.id, title: offer.title, status: "updated", oldPrice, newPrice, originalPrice, discount };
       }
+
+      // Precio confirmado sin cambios: igual cuenta como verificado
+      await prisma.offer.update({ where: { id: offer.id }, data: { lastCheckedAt: new Date() } });
 
       return { id: offer.id, title: offer.title, status: "no_change", price: newPrice };
 
