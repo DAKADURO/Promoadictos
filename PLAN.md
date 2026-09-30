@@ -39,8 +39,8 @@
 ## Fase 4 — Comunicación automática
 **Modelo: Haiku 4.5** · Esfuerzo: 1 sesión
 
-- [ ] Reemplazar email por-oferta con **digest diario** ("Las mejores ofertas de hoy") como job programado
-- [ ] Enviar en lotes de ~50 destinatarios (el BCC único actual revienta límites SMTP al crecer la lista)
+- [x] Reemplazar email por-oferta con **digest diario** ("Las mejores ofertas de hoy") como job programado (`src/lib/digest.js`, job `daily-digest`, `DAILY_DIGEST_SCHEDULE`)
+- [x] Enviar en lotes de ~50 (`DIGEST_BATCH_SIZE`) destinatarios (el BCC único actual revienta límites SMTP al crecer la lista)
 - [ ] Opcional: bot de Telegram que publica cada oferta destacada en un canal
 
 ## Fase 5 — Panel de control de automatización
@@ -58,3 +58,15 @@
 - **Ahorro de contexto:** las sesiones con Haiku NO deben leer `src/app/admin/page.js` (2,291 líneas). Solo la Fase 5 lo necesita.
 - **AGENTS.md aplica siempre:** este Next.js tiene breaking changes vs. lo conocido — leer las guías en `node_modules/next/dist/docs/` antes de escribir código.
 - **Orden recomendado:** Fase 1 → 2 → spike de Fase 3 → resto de Fase 3 → 4 → 5. Las fases 1-2 dan valor inmediato (precios frescos, sin links muertos) sin depender del spike.
+
+---
+
+## Fase 6 — Conversión y confianza (catálogo público)
+
+- [x] Quitar señales inventadas: "N personas lo aprovecharon" (hash del ID), cuenta regresiva a medianoche, "Mínimo histórico" por descuento ≥40% y "Verificado hoy" sin dato. Ahora solo se usan datos reales (`priceHistories`, `lastCheckedAt`) — `src/lib/offerSignals.js`
+- [x] Medir clics salientes: evento GA4 `offer_click` (tarjeta, destacado, modal, detalle). **Marcarlo como evento clave en GA4.**
+- [x] Tarjeta simplificada (imagen, precio, ahorro, CTA), MSI como "hasta 12 MSI*" y aviso de afiliados
+- [x] Filtro de calidad: no se muestran ofertas sin descuento real
+- [x] Títulos cortos y CTA con nombre de la tienda ("Ver en Mercado Libre")
+- [ ] **Diversificar tiendas:** hoy `discover-offers` solo trae Mercado Libre. Pendiente: Amazon Associates y otras tiendas con programa de afiliados (el texto del hero ya lista solo las tiendas que realmente hay)
+- [ ] Probar el parámetro de afiliado (`matt_tool`/`matt_word`) con una compra de prueba antes de usarlo (ver análisis en la conversación)

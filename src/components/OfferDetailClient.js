@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ExternalLink, ShoppingBag, MessageCircle, Send, Link2, Check } from "lucide-react";
 import PriceChart from "@/components/PriceChart";
+import { trackOfferClick } from "@/lib/offerSignals";
 
 function ShareButtons({ title, url }) {
   const [copied, setCopied] = useState(false);
@@ -126,7 +127,7 @@ export default function OfferDetailClient({ offer, related, storeInfo }) {
 
           <PriceChart priceHistories={offer.priceHistories} />
 
-          <a href={offer.affiliateUrl} target="_blank" rel="noopener noreferrer" className="price-modal-btn">
+          <a href={offer.affiliateUrl} target="_blank" rel="noopener noreferrer" className="price-modal-btn" onClick={() => trackOfferClick(offer, "detail")}>
             <ShoppingBag size={18} strokeWidth={2.5} />
             <span>Comprar ahora en {storeInfo.name}</span>
             <ExternalLink size={16} />
