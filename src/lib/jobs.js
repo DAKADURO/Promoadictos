@@ -170,6 +170,7 @@ async function syncPrices() {
     success: data.success,
     processed: data.processed,
     updated: data.updated,
+    deactivated: data.deactivated,
     errors: data.errors
   };
 }
