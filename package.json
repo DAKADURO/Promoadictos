@@ -16,10 +16,10 @@
     "bcryptjs": "^2.4.3",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
-    "next": "^15.1.11",
-    "next-auth": "^5.0.0-beta.25",
+    "next": "^15.5.27",
+    "next-auth": "5.0.0-beta.32",
     "node-cron": "^4.6.0",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^10.0.13",
     "prisma": "^6.19.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -28,7 +28,16 @@
     "@types/react": "^19.2.14",
     "csstype": "^3.2.3",
     "eslint": "^9",
-    "eslint-config-next": "^15.1.11",
+    "eslint-config-next": "^15.5.27",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "next-auth": {
+      "nodemailer": "$nodemailer"
+    },
+    "@auth/core": {
+      "nodemailer": "$nodemailer"
+    },
+    "postcss": "^8.5.28"
   }
 }
