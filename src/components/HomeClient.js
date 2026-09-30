@@ -11,6 +11,7 @@ import Navbar from "@/components/Navbar";
 import { Sparkles, Zap, ShieldCheck, Clock, CheckCircle2, ArrowRight, X, TrendingDown, Flame, ShoppingBag, Coins, BarChart3, Mail, Loader2, MessageCircle, Send } from "lucide-react";
 import { getStoreInfo } from "@/lib/store";
 import { BASE_CATEGORIES } from "@/lib/categories";
+import { isRealHistoricLow, hasRealDiscount, ctaLabel, timeAgo, trackOfferClick } from "@/lib/offerSignals";
 
 const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
 const TELEGRAM_URL = process.env.NEXT_PUBLIC_TELEGRAM_URL || "";
@@ -178,36 +179,6 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     return sorted[0];
   }, [currentOffers]);
 
-  // Live Countdown Timer to Midnight
-  const [timeLeft, setTimeLeft] = useState("00h 00m 00s");
-  useEffect(() => {
-    const updateTimer = () => {
-      const now = new Date();
-      const midnight = new Date();
-      midnight.setHours(24, 0, 0, 0); // Next midnight
-      const diffMs = midnight - now;
-
-      if (diffMs <= 0) {
-        setTimeLeft("00h 00m 00s");
-        return;
-      }
-
-      const hrs = Math.floor(diffMs / (1000 * 60 * 60));
-      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-      const hrsStr = hrs.toString().padStart(2, "0");
-      const minsStr = mins.toString().padStart(2, "0");
-      const secsStr = secs.toString().padStart(2, "0");
-
-      setTimeLeft(`${hrsStr}h ${minsStr}m ${secsStr}s`);
-    };
-
-    updateTimer();
-    const timerInterval = setInterval(updateTimer, 1000);
-    return () => clearInterval(timerInterval);
-  }, []);
-
   // 3D Card Rotation State
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
   const handleMouseMove = (e) => {
@@ -228,7 +199,8 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
   };
 
   useEffect(() => {
-    setCurrentOffers(offers);
+    // Solo se muestran ofertas con descuento real comprobable
+    setCurrentOffers(offers.filter(hasRealDiscount));
   }, [offers]);
 
   useEffect(() => {
@@ -273,7 +245,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     if (quickFilter === "50pct") {
       result = result.filter((o) => (parseInt(o.discount) || 0) >= 50);
     } else if (quickFilter === "historic") {
-      result = result.filter((o) => (parseInt(o.discount) || 0) >= 40);
+      result = result.filter(isRealHistoricLow);
     } else if (quickFilter === "msi") {
       result = result.filter((o) => (parseFloat(o.price) || 0) >= 500);
     }
@@ -366,6 +338,19 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
     };
   }, [currentOffers]);
 
+  const hasHistoric = useMemo(() => currentOffers.some(isRealHistoricLow), [currentOffers]);
+
+  const storeNames = useMemo(
+    () => Array.from(new Set(currentOffers.map((o) => getStoreInfo(o.affiliateUrl).name))).filter((n) => n !== "Tienda oficial"),
+    [currentOffers]
+  );
+
+  const lastVerified = useMemo(() => {
+    const times = currentOffers.map((o) => (o.lastCheckedAt ? new Date(o.lastCheckedAt).getTime() : 0));
+    const latest = Math.max(0, ...times);
+    return latest ? timeAgo(latest) : null;
+  }, [currentOffers]);
+
   // ── TOP 3 HOT DEALS ──────────────────────────
   const topHotOffers = useMemo(() => {
     return [...currentOffers]
@@ -399,7 +384,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
           <div className="hero-left">
             <div className="badge">
               <span className="dot" />
-              Verificado & Actualizado Hoy
+              {lastVerified ? `Precios verificados ${lastVerified}` : "Ofertas seleccionadas"}
             </div>
 
             <h1 className="hero-title font-display">
@@ -409,12 +394,12 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
             </h1>
 
             <p className="hero-sub">
-              Encontramos y verificamos precios bajos en Amazon, Mercado Libre, Liverpool y más.
+              Encontramos precios bajos en {storeNames.length ? storeNames.join(", ") : "las mejores tiendas"} y te llevamos directo a comprar.
             </p>
 
             <div className="hero-quick-tags">
               <span className="hero-tag">🔥 {currentOffers.length} Ofertas activas</span>
-              <span className="hero-tag green">⚡ Enlaces 100% directos</span>
+              <span className="hero-tag green">✅ Compras directo en la tienda</span>
             </div>
           </div>
 
@@ -460,26 +445,24 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   </div>
                 </div>
 
-                {/* Countdown Timer */}
-                <div className="spotlight-timer-box">
-                  <div className="spotlight-timer-label">
-                    <Clock size={13} color="var(--clr-orange)" />
-                    Expira en:
+                {timeAgo(dealOfTheDay.lastCheckedAt) && (
+                  <div className="spotlight-timer-box">
+                    <div className="spotlight-timer-label">
+                      <Clock size={13} color="var(--clr-orange)" />
+                      Precio verificado {timeAgo(dealOfTheDay.lastCheckedAt)}
+                    </div>
                   </div>
-                  <div className="spotlight-timer-values">
-                    {timeLeft}
-                  </div>
-                </div>
+                )}
 
                 {/* Direct CTA */}
                 <a
                   href={dealOfTheDay.affiliateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); trackOfferClick(dealOfTheDay, "spotlight"); }}
                   className="spotlight-btn"
                 >
-                  <span>Ver Oferta Directa</span>
+                  <span>{ctaLabel(dealOfTheDay.affiliateUrl)}</span>
                   <ArrowRight size={15} />
                 </a>
               </div>
@@ -526,6 +509,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 >
                   🔥 +50% Descuento
                 </button>
+                {hasHistoric && (
                 <button
                   className={`filter-pill ${quickFilter === "historic" ? "active" : ""}`}
                   onClick={() => setQuickFilter(prev => prev === "historic" ? null : "historic")}
@@ -539,6 +523,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 >
                   ⚡ Mínimo Histórico
                 </button>
+                )}
                 <button
                   className={`filter-pill ${quickFilter === "msi" ? "active" : ""}`}
                   onClick={() => setQuickFilter(prev => prev === "msi" ? null : "msi")}
@@ -550,7 +535,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                     fontSize: "0.78rem"
                   }}
                 >
-                  💳 Con Meses Sin Intereses
+                  💳 Hasta 12 MSI
                 </button>
               </div>
 
@@ -623,6 +608,11 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                 </div>
               </div>
             </div>
+
+            <p style={{ fontSize: "0.7rem", color: "var(--clr-muted)", margin: "0 0 0.75rem" }}>
+              Algunos enlaces son de afiliado: si compras, podemos recibir una comisión sin costo extra para ti.
+              Los precios y el MSI* pueden cambiar o depender del banco; confírmalos en la tienda.
+            </p>
 
             {/* BANNER VIP CANAL WHATSAPP / TELEGRAM */}
             <div style={{
@@ -1102,6 +1092,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                   target="_blank"
                   rel="noopener noreferrer"
                   className="price-modal-btn"
+                  onClick={() => trackOfferClick(selectedOffer, "modal")}
                 >
                   <ShoppingBag size={18} strokeWidth={2.5} />
                   <span>Comprar ahora en {storeInfo.name}</span>

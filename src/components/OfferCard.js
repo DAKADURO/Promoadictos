@@ -3,9 +3,10 @@ import { ExternalLink, Flame, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { getStoreInfo } from "@/lib/store";
+import { isRealHistoricLow, shortTitle, ctaLabel, trackOfferClick } from "@/lib/offerSignals";
 
 export default function OfferCard({ offer, index = 0, onOpenModal }) {
-  const { id, title, price, originalPrice, discount, imageUrl, affiliateUrl, category, brand, isFeatured, priceHistories } = offer;
+  const { id, title, price, originalPrice, discount, imageUrl, affiliateUrl, isFeatured } = offer;
 
   const numericPrice = parseFloat(price) || 0;
   const numericOriginal = originalPrice ? parseFloat(originalPrice) : null;
@@ -14,16 +15,10 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
 
   const storeInfo = getStoreInfo(affiliateUrl);
 
-  const isHistoricLow =
-    (Array.isArray(priceHistories) &&
-    priceHistories.length >= 2 &&
-    numericPrice <= Math.min(...priceHistories.map((h) => parseFloat(h.price)))) || (discount && discount >= 40);
+  const isHistoricLow = isRealHistoricLow(offer);
 
   // Cálculo de Meses Sin Intereses (MSI) para productos de $500+ MXN
   const msiAmount = numericPrice >= 500 ? Math.round(numericPrice / 12) : null;
-
-  // Contador de prueba social determinista basado en ID
-  const socialProofCount = id ? (id.toString().split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 95) + 28 : 42;
 
   const handleCardClick = (e) => {
     if (onOpenModal) {
@@ -92,12 +87,7 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
 
       {/* Body */}
       <div className="card-body">
-        <div className="card-meta-row">
-          <span className="card-cat">{category || "Oferta"}</span>
-          {brand && <span className="card-brand">{brand}</span>}
-        </div>
-
-        <h2 className="card-title" title={title}>{title}</h2>
+        <h2 className="card-title" title={title}>{shortTitle(title)}</h2>
 
         <div className="card-pricing-wrap">
           <div className="card-pricing">
@@ -117,17 +107,15 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
           )}
         </div>
 
-        {/* Desglose de MSI + Prueba Social */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", margin: "0.4rem 0 0.6rem" }}>
-          {msiAmount && (
-            <div style={{ fontSize: "0.72rem", color: "#34D399", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.3rem" }}>
-              <span>💳</span> 12 MSI de ${msiAmount.toLocaleString("es-MX")}/mes
-            </div>
-          )}
-          <div style={{ fontSize: "0.68rem", color: "var(--clr-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-            <Flame size={11} color="var(--clr-orange)" /> {socialProofCount} personas lo aprovecharon
+        {/* MSI orientativo: depende del banco y de la tienda */}
+        {msiAmount && (
+          <div
+            title="Sujeto a tarjetas participantes y disponibilidad en la tienda"
+            style={{ fontSize: "0.72rem", color: "#34D399", fontWeight: 700, margin: "0.4rem 0 0.6rem" }}
+          >
+            💳 Hasta 12 MSI de ${msiAmount.toLocaleString("es-MX")}/mes*
           </div>
-        </div>
+        )}
 
         <a
           href={affiliateUrl}
@@ -135,11 +123,12 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
           rel="noopener noreferrer"
           onClick={(e) => {
             e.stopPropagation();
+            trackOfferClick(offer, "card");
           }}
           className="card-cta"
           id={`offer-cta-${id}`}
         >
-          <span>Ver oferta</span>
+          <span>{ctaLabel(affiliateUrl)}</span>
           <ExternalLink size={15} strokeWidth={2.5} />
         </a>
       </div>
