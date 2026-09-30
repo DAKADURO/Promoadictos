@@ -156,9 +156,9 @@ async function syncPrices() {
     throw new Error("CRON_SECRET not set for sync-prices job");
   }
 
-  const url = `${baseUrl}/api/offers/sync-prices?secret=${encodeURIComponent(secret)}`;
+  const url = `${baseUrl}/api/offers/sync-prices`;
 
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${secret}` } });
 
   if (!res.ok) {
     const text = await res.text();
@@ -186,9 +186,9 @@ async function checkLinks() {
     throw new Error("CRON_SECRET not set for check-links job");
   }
 
-  const url = `${baseUrl}/api/offers/check-links?secret=${encodeURIComponent(secret)}`;
+  const url = `${baseUrl}/api/offers/check-links`;
 
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${secret}` } });
 
   if (!res.ok) {
     const text = await res.text();
@@ -216,9 +216,9 @@ async function autoDeactivate() {
     throw new Error("CRON_SECRET not set for auto-deactivate job");
   }
 
-  const url = `${baseUrl}/api/offers/auto-deactivate?secret=${encodeURIComponent(secret)}`;
+  const url = `${baseUrl}/api/offers/auto-deactivate`;
 
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${secret}` } });
 
   if (!res.ok) {
     const text = await res.text();
@@ -245,9 +245,9 @@ async function deactivateCoupons() {
     throw new Error("CRON_SECRET not set for deactivate-coupons job");
   }
 
-  const url = `${baseUrl}/api/coupons/deactivate-expired?secret=${encodeURIComponent(secret)}`;
+  const url = `${baseUrl}/api/coupons/deactivate-expired`;
 
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${secret}` } });
 
   if (!res.ok) {
     const text = await res.text();
@@ -274,9 +274,9 @@ async function discoverOffers() {
     throw new Error("CRON_SECRET not set for discover-offers job");
   }
 
-  const url = `${baseUrl}/api/offers/discover-offers?secret=${encodeURIComponent(secret)}`;
+  const url = `${baseUrl}/api/offers/discover-offers`;
 
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${secret}` } });
 
   if (!res.ok) {
     const text = await res.text();
