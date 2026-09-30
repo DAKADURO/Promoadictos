@@ -3912,3 +3912,43 @@ span.price-modal-desktop-only {
 
 
 
+
+
+/* ─────────────────────────────────────────
+   D: DESKTOP COMPACTO — catálogo en la primera pantalla
+───────────────────────────────────────── */
+@media (min-width: 769px) {
+  .hero::before { display: none; }
+  .hero-container {
+    padding: 0.6rem 2rem 0.25rem;
+    gap: 1rem;
+    grid-template-columns: 1fr 320px;
+  }
+  .hero .badge { margin-bottom: 0.4rem; }
+  .hero-title {
+    font-size: clamp(1.4rem, 2.2vw, 2rem);
+    line-height: 1.15;
+  }
+  .hero-title br { display: none; }
+  .hero-sub {
+    margin: 0.35rem 0 0;
+    max-width: none;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+  .hero-quick-tags { margin-top: 0.5rem; }
+  .spotlight-card { max-width: 320px; padding: 0.7rem 0.9rem; gap: 0.5rem; }
+  .marquee-section { padding: 0.4rem 0; }
+  .unified-filter-toolbar {
+    padding: 0.6rem 1rem;
+    gap: 0.45rem;
+    margin-bottom: 0.9rem;
+  }
+  .card-img-wrap { aspect-ratio: 1 / 1; padding: 0.85rem; }
+}
+
+/* D: en móvil y tablet el catálogo va primero y la barra lateral después */
+@media (max-width: 1024px) {
+  .portal-main-feed { order: 1; }
+  .portal-sidebar { order: 2; }
+}

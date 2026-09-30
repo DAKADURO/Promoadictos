@@ -3,7 +3,7 @@ import { ExternalLink, Flame, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { getStoreInfo } from "@/lib/store";
-import { isRealHistoricLow, shortTitle, ctaLabel, trackOfferClick } from "@/lib/offerSignals";
+import { isRealHistoricLow, shortTitle, trackOfferClick } from "@/lib/offerSignals";
 
 export default function OfferCard({ offer, index = 0, onOpenModal }) {
   const { id, title, price, originalPrice, discount, imageUrl, affiliateUrl, isFeatured } = offer;
@@ -11,7 +11,7 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
   const numericPrice = parseFloat(price) || 0;
   const numericOriginal = originalPrice ? parseFloat(originalPrice) : null;
   const savings = numericOriginal && numericOriginal > numericPrice ? numericOriginal - numericPrice : 0;
-  const isHotDeal = discount && discount >= 30;
+  const isHotDeal = discount && discount >= 50;
 
   const storeInfo = getStoreInfo(affiliateUrl);
 
@@ -128,7 +128,7 @@ export default function OfferCard({ offer, index = 0, onOpenModal }) {
           className="card-cta"
           id={`offer-cta-${id}`}
         >
-          <span>{ctaLabel(affiliateUrl)}</span>
+          <span>Ver oferta</span>
           <ExternalLink size={15} strokeWidth={2.5} />
         </a>
       </div>

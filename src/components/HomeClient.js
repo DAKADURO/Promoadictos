@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import OfferCard from "@/components/OfferCard";
@@ -373,10 +373,71 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
           calculatedDiscount: discount
         };
       })
-      .filter((o) => o.calculatedDiscount > 0)
+      .filter((o) => o.calculatedDiscount > 0 && o.id !== dealOfTheDay?.id)
       .sort((a, b) => b.calculatedDiscount - a.calculatedDiscount)
       .slice(0, 3);
-  }, [currentOffers]);
+  }, [currentOffers, dealOfTheDay]);
+
+  const vipBanner = (
+            <div style={{
+              background: "linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(0, 136, 204, 0.12))",
+              border: "1px solid rgba(37, 211, 102, 0.25)",
+              borderRadius: "1rem",
+              padding: "0.9rem 1.25rem",
+              gridColumn: "1 / -1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #25D366, #0088cc)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.1rem",
+                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
+                  flexShrink: 0
+                }}>
+                  📲
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "0.88rem", fontWeight: 800, color: "#fff", margin: 0 }}>
+                    Canal VIP de Ofertas Relámpago en WhatsApp / Telegram
+                  </h3>
+                  <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", margin: "0.15rem 0 0" }}>
+                    Recibe alertas inmediatas antes de que se agoten las mejores liquidaciones.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={WHATSAPP_URL || TELEGRAM_URL || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: "linear-gradient(135deg, #25D366, #128C7E)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "0.78rem",
+                  padding: "0.55rem 1rem",
+                  borderRadius: "0.55rem",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.25)",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                ⚡ Unirme al Canal VIP
+              </a>
+            </div>
+  );
 
   return (
     <>
@@ -393,7 +454,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
             </div>
 
             <h1 className="hero-title font-display">
-              Descuentos reales en
+              Descuentos reales en{" "}
               <br />
               <span className="gradient-text">las mejores tiendas</span>
             </h1>
@@ -619,73 +680,17 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
               Los precios y el MSI* pueden cambiar o depender del banco; confírmalos en la tienda.
             </p>
 
-            {/* BANNER VIP CANAL WHATSAPP / TELEGRAM */}
-            <div style={{
-              background: "linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(0, 136, 204, 0.12))",
-              border: "1px solid rgba(37, 211, 102, 0.25)",
-              borderRadius: "1rem",
-              padding: "0.9rem 1.25rem",
-              marginBottom: "1.25rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "1rem",
-              flexWrap: "wrap"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <div style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #25D366, #0088cc)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.1rem",
-                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
-                  flexShrink: 0
-                }}>
-                  📲
-                </div>
-                <div>
-                  <h3 style={{ fontSize: "0.88rem", fontWeight: 800, color: "#fff", margin: 0 }}>
-                    Canal VIP de Ofertas Relámpago en WhatsApp / Telegram
-                  </h3>
-                  <p style={{ fontSize: "0.75rem", color: "var(--clr-muted)", margin: "0.15rem 0 0" }}>
-                    Recibe alertas inmediatas antes de que se agoten las mejores liquidaciones.
-                  </p>
-                </div>
-              </div>
-              <a
-                href={WHATSAPP_URL || TELEGRAM_URL || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: "linear-gradient(135deg, #25D366, #128C7E)",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: "0.78rem",
-                  padding: "0.55rem 1rem",
-                  borderRadius: "0.55rem",
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.25)",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                ⚡ Unirme al Canal VIP
-              </a>
-            </div>
-
             {/* PRODUCT GRID */}
             {filtered.length > 0 ? (
               <>
                 <div className="offers-grid">
                   {filtered.map((offer, i) => (
-                    <OfferCard key={offer.id} offer={offer} index={i} onOpenModal={setSelectedOffer} />
+                    <Fragment key={offer.id}>
+                      <OfferCard offer={offer} index={i} onOpenModal={setSelectedOffer} />
+                      {i === 7 && filtered.length > 8 && vipBanner}
+                    </Fragment>
                   ))}
+                  {filtered.length > 0 && filtered.length <= 8 && vipBanner}
                   {loadingMore && Array.from({ length: 4 }).map((_, i) => (
                     <div className="offer-card-skeleton" key={`skeleton-${i}`} aria-hidden="true">
                       <div className="skeleton offer-card-skeleton-img" />
@@ -850,16 +855,16 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                       </div>
                       <div>
                         <h3 className="subscribe-title font-display">
-                          Alertas Volcánicas
+                          Las mejores ofertas del día
                         </h3>
                         <span className="subscribe-subtitle">
-                          Recibe ofertas al instante
+                          Un correo al día, sin spam
                         </span>
                       </div>
                     </div>
                     
                     <p className="subscribe-description">
-                      ¿Cansado de llegar tarde a las de 90% de descuento? Únete al radar y recíbelas antes que todos.
+                      Cada día te mandamos las mejores ofertas verificadas. Sin costo y sin spam.
                     </p>
 
                     <form onSubmit={handleSubscribe} className="subscribe-form">
@@ -898,7 +903,7 @@ export default function HomeClient({ initialOffers, initialTotal, initialHasMore
                           </>
                         ) : (
                           <>
-                            <span>Unirse al club 🌋</span>
+                            <span>Recibir ofertas</span>
                             <ArrowRight size={16} />
                           </>
                         )}
