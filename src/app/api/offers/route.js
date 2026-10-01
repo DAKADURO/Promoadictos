@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { extractProductId } from "@/lib/productId";
+import { tagAffiliateUrl } from "@/lib/affiliate";
 
 export async function GET(req) {
   try {
@@ -111,7 +112,7 @@ export async function POST(req) {
         originalPrice: data.originalPrice,
         discount: data.discount,
         imageUrl: data.imageUrl,
-        affiliateUrl: data.affiliateUrl,
+        affiliateUrl: await tagAffiliateUrl(data.affiliateUrl),
         category: data.category,
         brand: data.brand || null,
         isFeatured: data.isFeatured || false,

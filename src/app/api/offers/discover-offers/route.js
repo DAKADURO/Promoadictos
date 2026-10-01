@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { authorizeCron } from "@/lib/cronAuth";
 import { getSettingValue } from "@/lib/settings";
+import { tagAffiliateUrl } from "@/lib/affiliate";
 import { NextResponse } from "next/server";
 import { scrapeProduct } from "@/lib/scraper";
 import { extractProductId } from "@/lib/productId";
@@ -124,7 +125,7 @@ export async function GET(req) {
               originalPrice: scraped.originalPrice,
               discount: scraped.discount ?? discount,
               imageUrl: scraped.imageUrl || "",
-              affiliateUrl: scraped.affiliateUrl,
+              affiliateUrl: await tagAffiliateUrl(scraped.affiliateUrl),
               category: scraped.category || category,
               brand: scraped.brand || null,
               isFeatured: false,
