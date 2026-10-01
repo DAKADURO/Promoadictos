@@ -48,6 +48,13 @@ const JOBS = [
 
 let scheduledTasks = [];
 
+// Los jobs se llaman a sí mismos por HTTP. Se usa el puerto local en vez del
+// dominio público para no pasar por el proxy de Railway (502/timeouts en
+// tareas largas). INTERNAL_BASE_URL permite cambiarlo si hiciera falta.
+function internalBaseUrl() {
+  return process.env.INTERNAL_BASE_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
+}
+
 /** Nombre y horario de cada job (para el panel del admin). */
 export function listJobs() {
   return JOBS.map((j) => ({ name: j.name, schedule: j.schedule }));
@@ -161,7 +168,7 @@ async function runJobWithLogging(jobName, handler) {
  * Calls the sync-prices endpoint with CRON_SECRET.
  */
 async function syncPrices() {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = internalBaseUrl();
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
@@ -182,6 +189,7 @@ async function syncPrices() {
     success: data.success,
     processed: data.processed,
     updated: data.updated,
+    unavailable: Array.isArray(data.results) ? data.results.filter((r) => r.status === "unavailable").length : undefined,
     deactivated: data.deactivated,
     errors: data.errors
   };
@@ -192,7 +200,7 @@ async function syncPrices() {
  * Calls the check-links endpoint with CRON_SECRET.
  */
 async function checkLinks() {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = internalBaseUrl();
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
@@ -222,7 +230,7 @@ async function checkLinks() {
  * Calls the auto-deactivate endpoint with CRON_SECRET.
  */
 async function autoDeactivate() {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = internalBaseUrl();
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
@@ -251,7 +259,7 @@ async function autoDeactivate() {
  * Calls the deactivate-expired endpoint with CRON_SECRET.
  */
 async function deactivateCoupons() {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = internalBaseUrl();
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
@@ -280,7 +288,7 @@ async function deactivateCoupons() {
  * Calls the discover-offers endpoint with CRON_SECRET.
  */
 async function discoverOffers() {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = internalBaseUrl();
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
@@ -297,13 +305,18 @@ async function discoverOffers() {
   }
 
   const data = await res.json();
+  const errors = Array.isArray(data.errors) ? data.errors : [];
   return {
     success: data.success,
     count: data.count,
+    createdCount: Array.isArray(data.created) ? data.created.length : 0,
+    skippedCount: Array.isArray(data.skipped) ? data.skipped.length : 0,
+    errorCount: errors.length,
+    firstError: errors[0]?.error,
+    draftMode: data.draftMode,
     created: data.created,
     skipped: data.skipped,
-    errors: data.errors,
-    draftMode: data.draftMode
+    errors: data.errors
   };
 }
 
