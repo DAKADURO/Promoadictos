@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { authorizeCron } from "@/lib/cronAuth";
+import { getSettingValue } from "@/lib/settings";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -8,8 +9,8 @@ export async function GET(req) {
 
   try {
     // Configuration thresholds (from env vars)
-    const MIN_DISCOUNT = parseInt(process.env.MIN_DISCOUNT_THRESHOLD || "10", 10);
-    const MAX_DAYS_ACTIVE = parseInt(process.env.MAX_DAYS_PUBLISHED || "30", 10);
+    const MIN_DISCOUNT = await getSettingValue("MIN_DISCOUNT_THRESHOLD");
+    const MAX_DAYS_ACTIVE = await getSettingValue("MAX_DAYS_PUBLISHED");
 
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - MAX_DAYS_ACTIVE);

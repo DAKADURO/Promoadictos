@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Navbar from "@/components/Navbar";
+import AutomationPanel from "@/components/AutomationPanel";
 
 const CATEGORIES = ["General", "Tecnología", "Hogar", "Moda", "Gaming", "Audio", "Deportes", "Belleza", "Otros"];
 
@@ -282,7 +283,13 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         await fetchOffers();
-        showToast(`¡Sincronizado! ${data.updated} de ${data.processed} ofertas actualizadas.`, "success");
+        const r = Array.isArray(data.results) ? data.results : [];
+        const n = (st) => r.filter((x) => x.status === st).length;
+        showToast(
+          `Sincronizado: ${data.processed} revisadas · ${data.updated} con precio nuevo · ${n("no_change")} sin cambios · ` +
+          `${n("unavailable") + n("deactivated")} no disponibles (${n("deactivated")} desactivadas) · ${data.errors} con error.`,
+          "success"
+        );
       } else {
         showToast(data?.error || "Error al sincronizar precios", "error");
       }
@@ -671,7 +678,7 @@ export default function AdminPage() {
   const featuredCouponsCount = coupons.filter(c => c.isFeatured).length;
 
   const stats = activeTab === "offers" ? [
-    { label: "Ofertas activas", value: offers.length, icon: <Package size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-orange)" },
+    { label: "Ofertas activas", value: offers.filter((o) => o.isActive !== false).length, icon: <Package size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-orange)" },
     { label: "Valor total", value: `$${totalValue.toLocaleString("es-MX")}`, icon: <DollarSign size={20} style={{ position: "relative", zIndex: 1 }} />, color: "var(--clr-purple)" },
     { label: "Descuento promedio", value: `${avgDiscount}%`, icon: <TrendingUp size={20} style={{ position: "relative", zIndex: 1 }} />, color: "#10B981" },
   ] : [
@@ -1062,7 +1069,7 @@ export default function AdminPage() {
           </div>
 
           {/* Stats */}
-          <div className="admin-stats-grid">
+          <div className="admin-stats-grid" style={activeTab === "automation" ? { display: "none" } : undefined}>
             {stats.map((s, i) => (
               <div key={i} className="admin-glass-card">
                 {/* Halo de luz de color radial degradado */}
@@ -1179,7 +1186,24 @@ export default function AdminPage() {
                 }}>{brokenLinks.brokenCount}</span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("automation")}
+              style={{
+                display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.6rem 1.5rem",
+                borderRadius: "0.75rem", border: "none",
+                background: activeTab === "automation" ? "var(--clr-orange)" : "transparent",
+                color: activeTab === "automation" ? "#fff" : "var(--clr-muted)",
+                fontSize: "0.9rem", fontWeight: 700, cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: activeTab === "automation" ? "0 4px 12px rgba(255,92,0,0.25)" : "none",
+              }}
+            >
+              <RefreshCw size={16} />
+              Automatización
+            </button>
           </div>
+
+          {activeTab === "automation" && <AutomationPanel />}
 
           {/* Main grid */}
           {activeTab === "offers" ? (
@@ -1682,7 +1706,7 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-          ) : (
+          ) : activeTab === "coupons" ? (
             <div className="admin-grid-layout">
               {/* Coupons Container (Bulk or Single) */}
               <div style={{
@@ -2412,7 +2436,7 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* ── BROKEN LINKS TAB ── */}
           {activeTab === "broken" && (
