@@ -3952,3 +3952,7 @@ span.price-modal-desktop-only {
   .portal-main-feed { order: 1; }
   .portal-sidebar { order: 2; }
 }
+
+/* D: el banner del canal ocupa una fila completa; "dense" rellena los huecos de la
+   fila anterior con las tarjetas siguientes (si no, una fila queda a medias). */
+.offers-grid { grid-auto-flow: row dense; }
