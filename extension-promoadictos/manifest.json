@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "PromoAdictos - 1-Click Importer",
-  "version": "1.0",
-  "description": "Publica ofertas al instante desde Mercado Libre a PromoAdictos.",
+  "version": "1.1",
+  "description": "Publica ofertas al instante desde Mercado Libre a PromoAdictos: lee tu enlace de afiliado meli.la y lo manda al panel.",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "action": {
     "default_popup": "popup.html",
