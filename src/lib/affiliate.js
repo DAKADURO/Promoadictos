@@ -37,6 +37,9 @@ export function applyAffiliateParams(raw) {
   if (!affiliateConfigured() || !isDirectMlProductUrl(raw)) return raw;
   const u = new URL(raw);
   if (u.searchParams.has("matt_tool") || u.searchParams.has("matt_word")) return raw;
+  // El fragmento (#polycard_client=…&c_uid=…) lo añade Mercado Libre al navegar y
+  // trae identificadores de tu sesión; no debe acabar en un enlace público.
+  u.hash = "";
   u.searchParams.set("matt_tool", process.env.ML_AFFILIATE_TOOL);
   u.searchParams.set("matt_word", process.env.ML_AFFILIATE_WORD);
   return u.toString();
