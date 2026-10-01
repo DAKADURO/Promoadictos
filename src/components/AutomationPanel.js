@@ -40,6 +40,15 @@ export default function AutomationPanel() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [edits, setEdits] = useState({});
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewOut, setPreviewOut] = useState("");
+
+  const previewAffiliate = async () => {
+    setPreviewOut("");
+    const res = await fetch("/api/admin/automation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "affiliate-preview", url: previewUrl }) });
+    const out = await res.json().catch(() => ({}));
+    setPreviewOut(res.ok ? out.url : out.error || "Error");
+  };
 
   const load = useCallback(async () => {
     try {
@@ -112,6 +121,21 @@ export default function AutomationPanel() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={card}>
+        <h3 style={{ margin: "0 0 0.25rem", fontSize: "1rem" }}>Enlaces de afiliado</h3>
+        <p style={{ margin: "0 0 0.6rem", fontSize: "0.75rem", color: "var(--clr-muted)" }}>
+          Estado de las variables <code>ML_AFFILIATE_TOOL</code> y <code>ML_AFFILIATE_WORD</code> en Railway:{" "}
+          <strong style={{ color: data.affiliateConfigured ? "#34d399" : "#fbbf24" }}>{data.affiliateConfigured ? "configuradas" : "faltan"}</strong>.
+          Mercado Libre aún no ha confirmado que atribuya comisión a estas URLs directas: haz primero una prueba de clic en tu panel de afiliados y después enciende el interruptor de abajo (en Umbrales).
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <input value={previewUrl} onChange={(e) => setPreviewUrl(e.target.value)} placeholder="https://www.mercadolibre.com.mx/.../p/MLM123..."
+            style={{ flex: "1 1 360px", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid var(--clr-border)", background: "rgba(0,0,0,0.3)", color: "var(--clr-text)" }} />
+          <button style={btn(false)} onClick={previewAffiliate}>Ver cómo quedaría</button>
+        </div>
+        {previewOut && <div style={{ marginTop: "0.5rem", fontSize: "0.75rem", wordBreak: "break-all", color: "var(--clr-orange-lt)" }}>{previewOut}</div>}
       </div>
 
       {data.atRisk?.length > 0 && (

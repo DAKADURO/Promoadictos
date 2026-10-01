@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listJobs, triggerJob } from "@/lib/jobs";
+import { affiliateConfigured, applyAffiliateParams, isDirectMlProductUrl } from "@/lib/affiliate";
 import { SETTINGS, getSetting, setSetting, isJobPaused, setJobPaused } from "@/lib/settings";
 
 const RUNNING_STALE_MS = 30 * 60 * 1000; // un log sin cierre de más de 30 min se considera caído
@@ -57,7 +58,7 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ jobs, history, atRisk, offers: { total, active, inactive }, settings });
+    return NextResponse.json({ jobs, history, atRisk, offers: { total, active, inactive }, settings, affiliateConfigured: affiliateConfigured() });
   } catch (error) {
     console.error("automation GET:", error);
     return NextResponse.json({ error: "No se pudo leer el estado de la automatización" }, { status: 500 });
@@ -97,6 +98,18 @@ export async function POST(req) {
       if (typeof body.id !== "string") return NextResponse.json({ error: "Falta el id" }, { status: 400 });
       await prisma.offer.update({ where: { id: body.id }, data: { unavailableChecks: 0, failedChecks: 0, isActive: true } });
       return NextResponse.json({ success: true });
+    }
+
+    // Vista previa: cómo quedaría una URL con tu etiqueta (para compararla con un enlace tuyo real).
+    if (body.action === "affiliate-preview") {
+      const url = String(body.url || "").trim();
+      if (!affiliateConfigured()) {
+        return NextResponse.json({ error: "Faltan ML_AFFILIATE_TOOL / ML_AFFILIATE_WORD en Railway (o tienen caracteres no válidos)" }, { status: 400 });
+      }
+      if (!isDirectMlProductUrl(url)) {
+        return NextResponse.json({ error: "Solo se etiquetan URLs https directas de producto en mercadolibre.com.mx (no meli.la)" }, { status: 400 });
+      }
+      return NextResponse.json({ url: applyAffiliateParams(url) });
     }
 
     if (body.action === "setting") {
