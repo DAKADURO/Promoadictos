@@ -162,6 +162,16 @@ export async function GET(req) {
       }
     }
 
+    // Si todas las búsquedas fallaron (p. ej. 403 de Mercado Libre) no es un
+    // "0 resultados" normal: se reporta como fallo para que se vea y avise.
+    const attempted = Object.keys(CATEGORY_QUERIES).length;
+    if (errors.length > 0 && errors.length >= attempted && created.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Todas las búsquedas de Mercado Libre fallaron", firstError: errors[0].error, errors },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       count: created.length,
