@@ -36,6 +36,14 @@ export async function GET() {
 
     const history = await prisma.jobLog.findMany({ orderBy: { startedAt: "desc" }, take: 25 });
 
+    // Ofertas con comprobaciones fallidas: las que el sistema podría desactivar solo
+    const atRisk = await prisma.offer.findMany({
+      where: { OR: [{ unavailableChecks: { gt: 0 } }, { failedChecks: { gt: 0 } }] },
+      orderBy: [{ unavailableChecks: "desc" }, { failedChecks: "desc" }],
+      take: 100,
+      select: { id: true, title: true, affiliateUrl: true, isActive: true, unavailableChecks: true, failedChecks: true, lastCheckedAt: true },
+    });
+
     const [total, active, inactive] = await Promise.all([
       prisma.offer.count(),
       prisma.offer.count({ where: { isActive: true } }),
@@ -49,7 +57,7 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ jobs, history, offers: { total, active, inactive }, settings });
+    return NextResponse.json({ jobs, history, atRisk, offers: { total, active, inactive }, settings });
   } catch (error) {
     console.error("automation GET:", error);
     return NextResponse.json({ error: "No se pudo leer el estado de la automatización" }, { status: 500 });
@@ -81,6 +89,13 @@ export async function POST(req) {
         return NextResponse.json({ error: "Job desconocido" }, { status: 400 });
       }
       await setJobPaused(body.job, !!body.paused);
+      return NextResponse.json({ success: true });
+    }
+
+    // "Esta oferta sí está bien": reinicia los contadores y la reactiva si estaba desactivada.
+    if (body.action === "keep-offer") {
+      if (typeof body.id !== "string") return NextResponse.json({ error: "Falta el id" }, { status: 400 });
+      await prisma.offer.update({ where: { id: body.id }, data: { unavailableChecks: 0, failedChecks: 0, isActive: true } });
       return NextResponse.json({ success: true });
     }
 

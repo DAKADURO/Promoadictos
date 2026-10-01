@@ -7,6 +7,7 @@ export const SETTINGS = {
   DISCOVER_AUTO_PUBLISH: { label: "Publicar automáticamente lo descubierto (sin borrador)", type: "bool", def: false },
   MIN_DISCOUNT_THRESHOLD: { label: "Desactivar ofertas con descuento menor a (%)", type: "int", min: 0, max: 90, def: 10 },
   MAX_DAYS_PUBLISHED: { label: "Desactivar ofertas con más de (días)", type: "int", min: 1, max: 365, def: 30 },
+  MAX_MISMATCH_CHECKS: { label: "Comprobaciones seguidas 'ya no aparece en la página' para desactivar", type: "int", min: 1, max: 100, def: 8 },
   MAX_UNAVAILABLE_CHECKS: { label: "Comprobaciones seguidas 'no disponible' para desactivar", type: "int", min: 1, max: 20, def: 3 },
 };
 

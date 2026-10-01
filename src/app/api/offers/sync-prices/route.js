@@ -15,9 +15,6 @@ const CONCURRENCY_LIMIT = 5;
  * Registra una comprobación "no disponible". Desactiva la oferta (no la borra)
  * al llegar al umbral. Solo aplica a ofertas activas.
  */
-// Si solo el título no coincide (p. ej. el admin lo editó) se exige más tiempo.
-const MAX_MISMATCH_CHECKS = parseInt(process.env.MAX_MISMATCH_CHECKS || "8", 10);
-
 async function markUnavailable(offer, reason, threshold) {
   if (threshold === undefined) threshold = await getSettingValue("MAX_UNAVAILABLE_CHECKS");
   if (!offer.isActive) {
@@ -131,7 +128,7 @@ async function processOffer(offer) {
           `Original="${offer.title}", Scraped="${scraped.title}". Skipping.`
         );
         // El producto ya no aparece en la lista/página: cuenta como no disponible
-        return markUnavailable(offer, `Title mismatch (scraped: ${scraped.title})`, MAX_MISMATCH_CHECKS);
+        return markUnavailable(offer, `Title mismatch (scraped: ${scraped.title})`, await getSettingValue("MAX_MISMATCH_CHECKS"));
       }
 
       if (scraped.available === false) {

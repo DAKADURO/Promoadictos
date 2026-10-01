@@ -114,6 +114,30 @@ export default function AutomationPanel() {
         </div>
       </div>
 
+      {data.atRisk?.length > 0 && (
+        <div style={card}>
+          <h3 style={{ margin: "0 0 0.25rem", fontSize: "1rem" }}>Ofertas en riesgo ({data.atRisk.length})</h3>
+          <p style={{ margin: "0 0 0.75rem", fontSize: "0.75rem", color: "var(--clr-muted)" }}>
+            El sistema no pudo confirmarlas en la última revisión (producto pausado, agotado o que ya no aparece en la página del enlace).
+            Si el contador llega al umbral, la oferta se desactiva sola. Abre el enlace: si el producto sigue a la venta, pulsa «Está bien».
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {data.atRisk.map((o) => (
+              <div key={o.id} style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--clr-border)", paddingTop: "0.5rem" }}>
+                <div style={{ flex: "1 1 320px", fontSize: "0.82rem", wordBreak: "break-word" }}>
+                  {o.title}
+                  <div style={{ fontSize: "0.7rem", color: "var(--clr-muted)" }}>
+                    no disponible: {o.unavailableChecks} · enlace fallido: {o.failedChecks} · {o.isActive ? "visible" : "DESACTIVADA"}
+                  </div>
+                </div>
+                <a href={o.affiliateUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn(false), textDecoration: "none" }}>Abrir enlace</a>
+                <button style={btn(true)} onClick={() => post({ action: "keep-offer", id: o.id }, "Contador reiniciado")}>Está bien</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={card}>
         <h3 style={{ margin: "0 0 0.25rem", fontSize: "1rem" }}>Umbrales</h3>
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.75rem", color: "var(--clr-muted)" }}>Lo que guardes aquí tiene prioridad sobre las variables de Railway.</p>
