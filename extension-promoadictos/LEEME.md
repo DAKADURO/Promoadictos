@@ -15,3 +15,12 @@ afiliados de Mercado Libre y lo manda al admin de promoadictos.com para auto-com
 
 Si el cuadro "Generar link" no está abierto, ofrece **"Importar sin afiliado"** (URL directa, sin tu
 comisión). Solo lee la pestaña activa cuando tú abres la extensión (permisos `activeTab` + `scripting`).
+
+## v1.2 — publicar directo
+Con el enlace detectado hay dos botones:
+- **Publicar directo**: el admin importa los datos y **guarda la oferta solo** si viene completa
+  (título, precio, imagen) y con **descuento comprobable** (precio original mayor que el precio).
+  Si falta algo, no se publica: te deja el formulario lleno y te dice qué falta. Si se publicó,
+  aparece un aviso con **Ver en el sitio** y **Deshacer**.
+- **Importar para revisar antes**: como en la v1.1 (tú confirmas y publicas).
+Sin enlace de afiliado, la extensión nunca publica sola.

@@ -16,21 +16,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   const infoText = document.getElementById("infoText");
   const btnPublish = document.getElementById("btnPublish");
 
-  const setState = (kind, badge, info, buttonLabel, onClick) => {
+  const btnReview = document.getElementById("btnReview");
+
+  // primary: botón principal; secondary (opcional): botón "revisar antes"
+  const setState = (kind, badge, info, primary, secondary) => {
     statusBadge.className = `status-badge ${kind}`;
     statusBadge.textContent = badge;
     infoText.textContent = info;
-    if (onClick) {
+    if (primary) {
       btnPublish.disabled = false;
-      btnPublish.lastChild.textContent = ` ${buttonLabel}`;
-      btnPublish.onclick = onClick;
+      btnPublish.lastChild.textContent = ` ${primary.label}`;
+      btnPublish.onclick = primary.onClick;
     } else {
       btnPublish.disabled = true;
     }
+    if (secondary) {
+      btnReview.style.display = "block";
+      btnReview.textContent = secondary.label;
+      btnReview.onclick = secondary.onClick;
+    } else {
+      btnReview.style.display = "none";
+    }
   };
 
-  const openAdmin = (url) => {
-    chrome.tabs.create({ url: `https://promoadictos.com/admin?importUrl=${encodeURIComponent(url)}` });
+  // autoPublish=true: el admin guarda la oferta solo si está completa y tiene descuento.
+  const openAdmin = (url, autoPublish = false) => {
+    const extra = autoPublish ? "&autoPublish=1" : "";
+    chrome.tabs.create({ url: `https://promoadictos.com/admin?importUrl=${encodeURIComponent(url)}${extra}` });
   };
 
   try {
@@ -46,7 +58,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 1) Si la pestaña ya es un enlace de afiliado, se manda tal cual.
     if (url.includes("meli.la")) {
-      setState("valid", "✓ Enlace de afiliado", "Listo. Haz clic para enviarlo al panel y auto-completar.", "Importar a Admin", () => openAdmin(cleanUrl));
+      setState(
+        "valid", "✓ Enlace de afiliado",
+        "Listo. Se publica solo si la oferta viene completa y con descuento.",
+        { label: "Publicar directo", onClick: () => openAdmin(cleanUrl, true) },
+        { label: "Importar para revisar antes", onClick: () => openAdmin(cleanUrl, false) }
+      );
       return;
     }
 
@@ -68,14 +85,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (affiliateLink) {
-      setState("valid", "✓ Enlace de afiliado detectado", `${affiliateLink.replace("https://", "")} · listo para enviar al panel.`, "Importar a Admin", () => openAdmin(affiliateLink));
+      setState(
+        "valid", "✓ Enlace de afiliado detectado",
+        `${affiliateLink.replace("https://", "")} · se publica solo si viene completa y con descuento.`,
+        { label: "Publicar directo", onClick: () => openAdmin(affiliateLink, true) },
+        { label: "Importar para revisar antes", onClick: () => openAdmin(affiliateLink, false) }
+      );
     } else {
       setState(
         "invalid",
         "ℹ️ Falta el enlace de afiliado",
         "Abre «Generar link» en la barra de afiliados y vuelve a abrir esta extensión. Si importas sin él, la oferta no llevará tu comisión.",
-        "Importar sin afiliado",
-        () => openAdmin(cleanUrl)
+        { label: "Importar sin afiliado (revisar)", onClick: () => openAdmin(cleanUrl, false) }
       );
     }
   } catch (error) {
