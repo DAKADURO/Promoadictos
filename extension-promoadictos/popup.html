@@ -133,6 +133,20 @@
       box-shadow: 0 4px 15px rgba(255, 92, 0, 0.3);
     }
 
+    .btn-secondary {
+      width: 100%;
+      margin-top: 0.5rem;
+      background: transparent;
+      color: var(--clr-muted);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { color: var(--clr-text); border-color: var(--clr-orange); }
+
     .btn-action:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(255, 92, 0, 0.45);
@@ -190,6 +204,9 @@
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
       </svg>
       Importar a Admin
+    </button>
+    <button id="btnReview" class="btn-secondary" style="display:none;">
+      Importar para revisar antes
     </button>
   </div>
 

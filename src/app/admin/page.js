@@ -170,6 +170,9 @@ export default function AdminPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  // Resultado de una importación (publicada sola, o por qué requiere revisión)
+  const [notice, setNotice] = useState(null);
+  const autoRan = useRef(false);
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -239,24 +242,70 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const triggerAutoImport = async (url) => {
+  // Reglas para publicar sin revisión humana: solo ofertas completas y con descuento comprobable.
+  const autoPublishProblem = (d) => {
+    const price = parseFloat(d.price);
+    const original = parseFloat(d.originalPrice);
+    if (!d.title) return "falta el título";
+    if (!(price > 0)) return "falta el precio";
+    if (!d.imageUrl) return "falta la imagen";
+    if (!d.affiliateUrl) return "falta el enlace";
+    if (!(original > price)) return "no tiene precio original (sin descuento comprobable)";
+    return null;
+  };
+
+  const triggerAutoImport = async (url, { autoPublish = false } = {}) => {
     setImporting(true);
+    setNotice(null);
     try {
       const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
       const data = await res.json();
       if (res.ok && data.success) {
+        const payload = {
+          title: data.title || "",
+          price: data.price ?? null,
+          originalPrice: data.originalPrice ?? null,
+          discount: data.discount ?? null,
+          imageUrl: data.imageUrl || "",
+          affiliateUrl: data.affiliateUrl || url,
+          category: data.category || "General",
+          brand: data.brand || "",
+          isFeatured: false,
+        };
+
+        const problem = autoPublish ? autoPublishProblem(payload) : "revisión manual";
+        if (autoPublish && !problem) {
+          const pub = await fetch("/api/offers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, brand: payload.brand || null }),
+          });
+          const out = await pub.json().catch(() => ({}));
+          if (pub.ok) {
+            setFormData(EMPTY_FORM);
+            setImportUrl("");
+            fetchOffers();
+            setNotice({ kind: "ok", text: `Publicada: ${payload.title}`, offerId: out.id });
+            return;
+          }
+          // No se pudo publicar solo (p. ej. duplicada): se deja el formulario para revisar.
+          setNotice({ kind: "warn", text: `No se publicó sola: ${out.details || out.error || "error al guardar"}. Revísala abajo.` });
+        } else if (autoPublish) {
+          setNotice({ kind: "warn", text: `No se publicó sola: ${problem}. Revisa los datos y publícala con el botón si quieres.` });
+        }
+
         setFormData(prev => ({
           ...prev,
-          title: data.title || prev.title,
-          price: data.price !== null && data.price !== undefined ? data.price.toString() : prev.price,
-          originalPrice: data.originalPrice !== null && data.originalPrice !== undefined ? data.originalPrice.toString() : prev.originalPrice,
-          discount: data.discount !== null && data.discount !== undefined ? data.discount.toString() : prev.discount,
-          imageUrl: data.imageUrl || prev.imageUrl,
-          affiliateUrl: data.affiliateUrl || prev.affiliateUrl || url,
-          category: data.category || prev.category,
-          brand: data.brand || prev.brand,
+          title: payload.title || prev.title,
+          price: payload.price !== null && payload.price !== undefined ? payload.price.toString() : prev.price,
+          originalPrice: payload.originalPrice !== null && payload.originalPrice !== undefined ? payload.originalPrice.toString() : prev.originalPrice,
+          discount: payload.discount !== null && payload.discount !== undefined ? payload.discount.toString() : prev.discount,
+          imageUrl: payload.imageUrl || prev.imageUrl,
+          affiliateUrl: payload.affiliateUrl || prev.affiliateUrl || url,
+          category: payload.category || prev.category,
+          brand: payload.brand || prev.brand,
         }));
-        showToast("¡Datos importados con éxito!");
+        if (!autoPublish) showToast("¡Datos importados con éxito!");
       } else {
         showToast(data?.error || "Error al importar el enlace", "error");
       }
@@ -264,6 +313,16 @@ export default function AdminPage() {
       showToast("Error de conexión al importar", "error");
     } finally {
       setImporting(false);
+    }
+  };
+
+  const undoPublished = async (id) => {
+    try {
+      await fetch(`/api/offers?id=${id}`, { method: "DELETE" });
+      setNotice({ kind: "warn", text: "Oferta eliminada (deshecho)." });
+      fetchOffers();
+    } catch {
+      showToast("No se pudo deshacer", "error");
     }
   };
 
@@ -367,9 +426,12 @@ export default function AdminPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const autoUrl = params.get("importUrl");
-      if (autoUrl) {
+      if (autoUrl && !autoRan.current) {
+        autoRan.current = true;
         setImportUrl(autoUrl);
-        triggerAutoImport(autoUrl);
+        triggerAutoImport(autoUrl, { autoPublish: params.get("autoPublish") === "1" });
+        // Sin los parámetros en la URL, recargar la página no repite la importación.
+        window.history.replaceState({}, "", window.location.pathname);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1067,6 +1129,25 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+
+          {notice && (
+            <div style={{
+              display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap",
+              padding: "0.8rem 1rem", margin: "0 0 1rem", borderRadius: "0.9rem",
+              border: `1px solid ${notice.kind === "ok" ? "rgba(16,185,129,0.4)" : "rgba(251,191,36,0.4)"}`,
+              background: notice.kind === "ok" ? "rgba(16,185,129,0.1)" : "rgba(251,191,36,0.08)",
+            }}>
+              <span style={{ fontSize: "1.1rem" }}>{notice.kind === "ok" ? "✅" : "⚠️"}</span>
+              <span style={{ flex: "1 1 260px", fontSize: "0.88rem", fontWeight: 600 }}>{notice.text}</span>
+              {notice.offerId && (
+                <>
+                  <a href={`/oferta/${notice.offerId}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--clr-orange-lt)" }}>Ver en el sitio</a>
+                  <button onClick={() => undoPublished(notice.offerId)} style={{ fontSize: "0.8rem", fontWeight: 700, padding: "0.35rem 0.8rem", borderRadius: "0.5rem", border: "1px solid var(--clr-border)", background: "transparent", color: "var(--clr-text)", cursor: "pointer" }}>Deshacer</button>
+                </>
+              )}
+              <button onClick={() => setNotice(null)} aria-label="Cerrar aviso" style={{ border: "none", background: "transparent", color: "var(--clr-muted)", cursor: "pointer", fontSize: "1rem" }}>✕</button>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="admin-stats-grid" style={activeTab === "automation" ? { display: "none" } : undefined}>
