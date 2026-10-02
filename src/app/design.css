@@ -211,3 +211,42 @@ h1, h2, h3,
     scroll-behavior: auto !important;
   }
 }
+
+/* ─────────────────────────────────────────
+   MOBILE (≤768px) — fixes de maquetación
+   Las reglas antiguas dejaban las tarjetas en fila dentro de 2 columnas
+   (texto y botón cortados) y los botones del encabezado en una 3ª fila.
+───────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Encabezado: logo + acciones en una fila, buscador debajo; no flota */
+  .glass-nav { position: static; }
+  .nav-brand { grid-row: 1; }
+  .nav-actions { grid-row: 1; grid-column: 2 / span 2; }
+  .nav-search { grid-row: 2; }
+  .nav-brand-name { font-size: 0.95rem !important; letter-spacing: -0.02em; }
+  .nav-brand { min-width: 0; gap: 0.4rem; }
+  .nav-pill-btn.cupones span { display: none; }
+  .nav-pill-btn.cupones { padding: 0.45rem; }
+  .nav-pill-btn { padding: 0.4rem 0.7rem; font-size: 0.74rem; }
+  .nav-pill-btn.terminales span { display: none; }
+  .nav-pill-btn.terminales { padding: 0.45rem; }
+
+  /* Tarjetas: vertical, 2 columnas, sin recortes */
+  .offers-grid { gap: 0.6rem !important; }
+  .offer-card { flex-direction: column !important; min-height: 0 !important; min-width: 0; }
+  .card-img-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--clr-border);
+  }
+  .card-body { min-width: 0; }
+  .card-title { font-size: 0.78rem !important; font-weight: 600; }
+  .card-price { font-size: 1.2rem !important; }
+  .card-pricing { flex-wrap: wrap; gap: 0 0.4rem; }
+  .card-cta { width: 100%; justify-content: center; min-height: 40px; }
+  .card-installments, .card-msi { font-size: 0.64rem !important; }
+
+  /* Filtros: una sola fila deslizable, sin cortar texto a medias */
+  .unified-filter-toolbar { overflow: hidden; }
+}
