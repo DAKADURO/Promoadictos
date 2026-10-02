@@ -11,7 +11,7 @@ const NAMES = {
   "daily-digest": "Correo diario a suscriptores",
 };
 
-const card = { background: "rgba(20,28,46,0.6)", border: "1px solid var(--clr-border)", borderRadius: "1rem", padding: "1rem 1.25rem" };
+const card = { background: "rgba(26, 22, 19,0.6)", border: "1px solid var(--clr-border)", borderRadius: "1rem", padding: "1rem 1.25rem" };
 const btn = (primary) => ({
   padding: "0.4rem 0.85rem", borderRadius: "0.5rem", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
   border: primary ? "none" : "1px solid var(--clr-border)", background: primary ? "var(--clr-orange)" : "transparent", color: primary ? "#fff" : "var(--clr-text)",
@@ -31,7 +31,7 @@ function summary(result) {
 }
 
 function Badge({ job }) {
-  const s = job.running ? ["Ejecutando…", "#60a5fa"] : job.paused ? ["Pausado", "#fbbf24"] : !job.lastRun ? ["Sin ejecuciones", "#9ca3af"] : job.lastRun.success ? ["OK", "#34d399"] : ["Falló", "#f87171"];
+  const s = job.running ? ["Ejecutando…", "#F1D6A0"] : job.paused ? ["Pausado", "#fbbf24"] : !job.lastRun ? ["Sin ejecuciones", "#9ca3af"] : job.lastRun.success ? ["OK", "#34d399"] : ["Falló", "#f87171"];
   return <span style={{ color: s[1], fontWeight: 800, fontSize: "0.78rem" }}>● {s[0]}</span>;
 }
 

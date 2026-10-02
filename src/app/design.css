@@ -1,0 +1,213 @@
+/* ════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO — Editorial de revista
+   Capa que se carga DESPUÉS de globals.css (paleta y tokens en :root).
+   · Serif de carácter (Fraunces) para titulares y precios
+   · Sans geométrica (Manrope) para interfaz y texto
+   · Un solo acento dominante: naranja; el resto, neutros cálidos
+   · Bordes de 1px translúcidos en lugar de sombras pesadas
+   ════════════════════════════════════════════════════════════════ */
+
+body {
+  font-family: var(--f-body);
+  letter-spacing: -0.005em;
+  font-feature-settings: "kern", "liga";
+}
+
+/* ── Titulares: serif display, saltos de escala grandes ───────── */
+h1, h2, h3,
+.font-display,
+.hero-title,
+.section-title,
+.coupons-title,
+.offer-detail-title,
+.price-modal-title,
+.subscribe-title,
+.footer-brand {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30;
+  letter-spacing: -0.025em;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 3.3vw, 3.1rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+/* La palabra clave del titular va en cursiva y color de marca (sin degradado) */
+.hero-title .gradient-text {
+  font-style: italic;
+  font-weight: 500;
+  background: none;
+  -webkit-text-fill-color: var(--clr-orange);
+  color: var(--clr-orange);
+  animation: none;
+}
+.hero-sub { font-size: 0.95rem; color: var(--clr-muted); }
+
+.coupons-title { font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 500; line-height: 1.02; }
+.offer-detail-title { font-size: clamp(1.7rem, 2.8vw, 2.5rem); font-weight: 500; line-height: 1.1; }
+
+/* ── Marca ───────────────────────────────────────────────────── */
+.nav-brand-name {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  color: var(--clr-text);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+.brand-accent { color: var(--clr-orange); -webkit-text-fill-color: var(--clr-orange); font-style: italic; }
+.nav-brand-tagline { letter-spacing: 0.22em; color: var(--clr-dim); }
+.glass-nav { border-bottom: 1px solid var(--clr-border); box-shadow: none; }
+
+/* ── Etiqueta superior del hero ──────────────────────────────── */
+.badge {
+  background: transparent;
+  border: 1px solid var(--clr-border);
+  color: var(--clr-muted);
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+.badge .dot { background: var(--clr-orange); box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.18); }
+.hero-tag {
+  background: transparent;
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  font-weight: 600;
+}
+.hero-tag.green { color: var(--clr-green); border-color: rgba(52, 211, 153, 0.28); }
+
+/* ── Tarjetas de oferta: planas, borde fino, precio protagonista ─ */
+.offer-card {
+  background: var(--clr-card);
+  border: 1px solid var(--clr-border);
+  box-shadow: none;
+  transition: transform 0.4s var(--ease), border-color 0.25s ease, background 0.25s ease, box-shadow 0.4s var(--ease);
+}
+.offer-card:hover,
+.offer-card:focus-visible {
+  transform: translateY(-4px);
+  background: var(--clr-card-hover);
+  border-color: rgba(255, 90, 31, 0.5);
+  box-shadow: var(--shadow-card-hover);
+}
+.card-title { font-family: var(--f-body); font-weight: 600; letter-spacing: -0.01em; color: var(--clr-text); }
+.card-price {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 1.85rem;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--clr-text);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.card-original { color: var(--clr-dim); }
+.card-savings {
+  color: var(--clr-green);
+  background: var(--clr-green-bg);
+  border: 1px solid rgba(52, 211, 153, 0.22);
+}
+.discount-badge {
+  font-family: var(--f-body);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 6px;
+}
+.card-store-badge { border: 1px solid rgba(255, 244, 230, 0.14); }
+.card-cta { transition: transform 0.2s var(--ease), background 0.2s ease, box-shadow 0.25s ease; }
+.card-cta svg { transition: transform 0.25s var(--ease); }
+.card-cta:hover svg { transform: translate(2px, -2px); }
+.card-cta:active { transform: scale(0.98); }
+
+/* ── Filtros: píldoras de línea fina; la activa en "papel" invertido ─ */
+.filter-pill {
+  font-family: var(--f-body);
+  background: transparent;
+  border: 1px solid var(--clr-border);
+  color: var(--clr-muted);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease);
+}
+.filter-pill:hover { color: var(--clr-text); border-color: rgba(255, 244, 230, 0.28); background: rgba(255, 244, 230, 0.04); transform: translateY(-1px); }
+.filter-pill.active {
+  background: var(--clr-text);
+  border-color: var(--clr-text);
+  color: #0E0C0A;
+  box-shadow: none;
+}
+.unified-filter-toolbar { background: transparent; border: 1px solid var(--clr-border); backdrop-filter: none; }
+
+/* ── Barra lateral y secciones: etiqueta en versalitas + regla ─── */
+.sidebar-section-header { padding-bottom: 0.7rem; border-bottom: 1px solid var(--clr-border); }
+.sidebar-section-title {
+  font-family: var(--f-body);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+.hot-deal-card, .savings-card, .sidebar-subscribe-card, .sidebar-whatsapp-card {
+  background: var(--clr-card);
+  border: 1px solid var(--clr-border);
+  box-shadow: none;
+  transition: transform 0.35s var(--ease), border-color 0.25s ease;
+}
+.hot-deal-card:hover, .sidebar-whatsapp-card:hover { transform: translateY(-2px); border-color: rgba(255, 90, 31, 0.45); }
+.hot-deal-price, .spotlight-price, .price-modal-price, .coupon-discount-value {
+  font-family: var(--f-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.subscribe-title { font-weight: 500; font-size: 1.35rem; line-height: 1.1; }
+
+/* ── Destacado del hero ──────────────────────────────────────── */
+.spotlight-card { background: var(--clr-card); border: 1px solid rgba(255, 90, 31, 0.3); box-shadow: none; }
+.spotlight-card:hover { border-color: rgba(255, 90, 31, 0.6); box-shadow: var(--shadow-card-hover); }
+.spotlight-tag { letter-spacing: 0.12em; }
+
+/* ── Cupones y pie ───────────────────────────────────────────── */
+.coupon-card { border: 1px solid var(--clr-border); box-shadow: none; transition: transform 0.35s var(--ease), border-color 0.25s ease; }
+.coupon-card:hover { transform: translateY(-3px); border-color: rgba(255, 90, 31, 0.45); }
+.site-footer { border-top: 1px solid var(--clr-border); }
+.footer-brand { font-size: 1.6rem; font-weight: 600; }
+.footer-col-title { font-family: var(--f-body); letter-spacing: 0.16em; }
+
+/* ── Aire: más espacio en pantallas medianas y grandes ─────────── */
+@media (min-width: 769px) {
+  .card-body { padding: 1.15rem 1.2rem 1.25rem; }
+  .offers-grid { gap: 1.4rem; }
+  .portal-layout-container { gap: 1.75rem; }
+  .sidebar-section-header { margin-bottom: 1.1rem; }
+}
+
+/* ── Entrada escalonada (staggered) al cargar ─────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-left > * { animation: rise 0.7s var(--ease) both; }
+.hero-left > *:nth-child(1) { animation-delay: 0.02s; }
+.hero-left > *:nth-child(2) { animation-delay: 0.10s; }
+.hero-left > *:nth-child(3) { animation-delay: 0.18s; }
+.hero-left > *:nth-child(4) { animation-delay: 0.26s; }
+.spotlight-card-wrapper { animation: rise 0.8s var(--ease) 0.3s both; }
+.unified-filter-toolbar { animation: rise 0.7s var(--ease) 0.34s both; }
+.portal-sidebar > * { animation: rise 0.7s var(--ease) both; }
+.portal-sidebar > *:nth-child(1) { animation-delay: 0.40s; }
+.portal-sidebar > *:nth-child(2) { animation-delay: 0.48s; }
+.portal-sidebar > *:nth-child(3) { animation-delay: 0.56s; }
+.portal-sidebar > *:nth-child(4) { animation-delay: 0.64s; }
+
+/* ── Foco visible y movimiento reducido ──────────────────────── */
+:focus-visible { outline: 2px solid var(--clr-orange); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
