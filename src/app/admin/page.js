@@ -1,5 +1,6 @@
 "use client";
 
+import { BASE_CATEGORIES } from "@/lib/categories";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Plus, Trash2, Star,
@@ -285,7 +286,7 @@ export default function AdminPage() {
             setFormData(EMPTY_FORM);
             setImportUrl("");
             fetchOffers();
-            setNotice({ kind: "ok", text: `Publicada: ${payload.title}`, offerId: out.id });
+            setNotice({ kind: "ok", text: `Publicada: ${payload.title}`, offerId: out.id, category: payload.category });
             return;
           }
           // No se pudo publicar solo (p. ej. duplicada): se deja el formulario para revisar.
@@ -1139,6 +1140,22 @@ export default function AdminPage() {
             }}>
               <span style={{ fontSize: "1.1rem" }}>{notice.kind === "ok" ? "✅" : "⚠️"}</span>
               <span style={{ flex: "1 1 260px", fontSize: "0.88rem", fontWeight: 600 }}>{notice.text}</span>
+              {notice.offerId && notice.category && (
+                <label style={{ fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  Categoría:
+                  <select
+                    value={notice.category}
+                    onChange={async (e) => {
+                      const category = e.target.value;
+                      await updateOffer(notice.offerId, { category });
+                      setNotice(n => n ? { ...n, category } : n);
+                    }}
+                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.5rem", borderRadius: "0.5rem", border: "1px solid var(--clr-border)", background: "transparent", color: "var(--clr-text)" }}
+                  >
+                    {[...new Set([...BASE_CATEGORIES, "General", notice.category])].map(c => <option key={c} value={c} style={{ color: "#000" }}>{c}</option>)}
+                  </select>
+                </label>
+              )}
               {notice.offerId && (
                 <>
                   <a href={`/oferta/${notice.offerId}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--clr-orange-lt)" }}>Ver en el sitio</a>
