@@ -780,7 +780,7 @@ export default function AdminPage() {
         }
         .coupon-store-tag.general {
           background: rgba(124, 58, 237, 0.15);
-          color: #a78bfa;
+          color: #DDA27C;
         }
 
         /* Efecto de borde de energía para el módulo de scraping inteligente */
@@ -801,7 +801,7 @@ export default function AdminPage() {
 
         .energy-border-container.active {
           border: 1px solid transparent;
-          background: linear-gradient(90deg, #ff5c00, #ff8c00, #7c3aed, #ff5c00);
+          background: linear-gradient(90deg, #ff5c00, #ff8c00, #B26F45, #ff5c00);
           background-size: 300% 300%;
           animation: energy-border-animation 2s linear infinite;
           box-shadow: 0 0 15px rgba(255, 92, 0, 0.15);
@@ -810,7 +810,7 @@ export default function AdminPage() {
         /* Tarjetas de estadísticas con Glassmorphism premium */
         .admin-glass-card {
           position: relative;
-          background: rgba(14, 19, 38, 0.45) !important;
+          background: rgba(21, 18, 16, 0.45) !important;
           backdrop-filter: blur(16px) saturate(1.2);
           -webkit-backdrop-filter: blur(16px) saturate(1.2);
           border: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -1166,7 +1166,7 @@ export default function AdminPage() {
                   {s.icon}
                 </div>
                 <div style={{ position: "relative", zIndex: 1 }}>
-                  <div className="admin-stat-value" style={{ fontSize: "1.45rem", fontWeight: 800, lineHeight: 1, fontFamily: "Sora, sans-serif", color: "#fff" }}>
+                  <div className="admin-stat-value" style={{ fontSize: "1.45rem", fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display), serif", color: "#fff" }}>
                     {s.value}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--clr-muted)", marginTop: "0.25rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.02em" }}>
@@ -1181,7 +1181,7 @@ export default function AdminPage() {
           <div style={{
             display: "flex",
             alignItems: "center",
-            background: "rgba(14, 19, 38, 0.4)",
+            background: "rgba(21, 18, 16, 0.4)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             border: "1px solid rgba(255, 255, 255, 0.04)",
@@ -1291,7 +1291,7 @@ export default function AdminPage() {
             <div className="admin-grid-layout">
               {/* Offers Form */}
               <form onSubmit={handleSubmit} style={{
-                background: "rgba(14, 19, 38, 0.4)",
+                background: "rgba(21, 18, 16, 0.4)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
                 border: "1px solid rgba(255, 255, 255, 0.04)",
@@ -1302,7 +1302,7 @@ export default function AdminPage() {
                 <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
                   <span style={{ 
                     width: "28px", height: "28px", 
-                    background: editingOfferId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
+                    background: editingOfferId ? "linear-gradient(135deg, var(--clr-purple), #DDA27C)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
                     borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
                     boxShadow: editingOfferId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
                     transition: "all 0.3s ease"
@@ -1455,7 +1455,7 @@ export default function AdminPage() {
                           : !editingOfferId && (isTitleDuplicate || isUrlDuplicate)
                             ? "rgba(255,255,255,0.05)"
                             : editingOfferId
-                              ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                              ? "linear-gradient(135deg, var(--clr-purple), #C9855B)"
                               : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
                         color: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "var(--clr-muted)" : "#fff",
                         border: !editingOfferId && (isTitleDuplicate || isUrlDuplicate) ? "1px solid var(--clr-border)" : "none",
@@ -1513,7 +1513,7 @@ export default function AdminPage() {
               <div>
                 {/* Header con Buscador e Interactividad de Filtros */}
                 <div style={{
-                  background: "rgba(14, 19, 38, 0.4)",
+                  background: "rgba(21, 18, 16, 0.4)",
                   backdropFilter: "blur(16px)",
                   WebkitBackdropFilter: "blur(16px)",
                   border: "1px solid rgba(255, 255, 255, 0.04)",
@@ -1593,7 +1593,7 @@ export default function AdminPage() {
                 ) : filteredOffers.length === 0 ? (
                   <div style={{
                     textAlign: "center", padding: "4rem 2rem",
-                    background: "rgba(14, 19, 38, 0.3)", border: "2px dashed var(--clr-border)",
+                    background: "rgba(21, 18, 16, 0.3)", border: "2px dashed var(--clr-border)",
                     borderRadius: "1.25rem", color: "var(--clr-muted)",
                   }}>
                     <Package size={40} style={{ margin: "0 auto 1rem", opacity: 0.15 }} />
@@ -1682,7 +1682,7 @@ export default function AdminPage() {
                           <div className="admin-offer-body" style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexShrink: 0 }}>
                             {/* Precios */}
                             <div className="admin-offer-prices" style={{ textAlign: "right" }}>
-                              <p style={{ fontWeight: 800, fontFamily: "Sora, sans-serif", fontSize: "1.1rem", color: "#fff" }}>
+                              <p style={{ fontWeight: 800, fontFamily: "var(--font-display), serif", fontSize: "1.1rem", color: "#fff" }}>
                                 ${offer.price.toLocaleString("es-MX")}
                               </p>
                               {offer.originalPrice && (
@@ -1741,7 +1741,7 @@ export default function AdminPage() {
                         justifyContent: "center", 
                         gap: "0.4rem", 
                         marginTop: "1.5rem",
-                        background: "rgba(14, 19, 38, 0.2)",
+                        background: "rgba(21, 18, 16, 0.2)",
                         padding: "0.6rem",
                         borderRadius: "0.85rem",
                         border: "1px solid var(--clr-border)"
@@ -1791,7 +1791,7 @@ export default function AdminPage() {
             <div className="admin-grid-layout">
               {/* Coupons Container (Bulk or Single) */}
               <div style={{
-                background: "rgba(14, 19, 38, 0.4)",
+                background: "rgba(21, 18, 16, 0.4)",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
                 border: "1px solid rgba(255, 255, 255, 0.04)",
@@ -1842,7 +1842,7 @@ export default function AdminPage() {
                       padding: "0.6rem 0.6rem",
                       borderRadius: "0.55rem",
                       border: "none",
-                      background: couponInputMode === "single" || editingCouponId ? "linear-gradient(135deg, var(--clr-indigo), #8b5cf6)" : "transparent",
+                      background: couponInputMode === "single" || editingCouponId ? "linear-gradient(135deg, var(--clr-indigo), #C9855B)" : "transparent",
                       color: couponInputMode === "single" || editingCouponId ? "#fff" : "var(--clr-muted)",
                       fontWeight: 700,
                       fontSize: "0.8rem",
@@ -2002,7 +2002,7 @@ export default function AdminPage() {
                     <h2 className="font-display" style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#fff" }}>
                       <span style={{ 
                         width: "28px", height: "28px", 
-                        background: editingCouponId ? "linear-gradient(135deg, var(--clr-purple), #a78bfa)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
+                        background: editingCouponId ? "linear-gradient(135deg, var(--clr-purple), #DDA27C)" : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))", 
                         borderRadius: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center",
                         boxShadow: editingCouponId ? "0 4px 10px rgba(124,58,237,0.3)" : "0 4px 10px rgba(255,92,0,0.3)",
                         transition: "all 0.3s ease"
@@ -2173,7 +2173,7 @@ export default function AdminPage() {
                               : !editingCouponId && isCouponDuplicate
                                 ? "rgba(255,255,255,0.05)"
                                 : editingCouponId
-                                  ? "linear-gradient(135deg, var(--clr-purple), #8b5cf6)"
+                                  ? "linear-gradient(135deg, var(--clr-purple), #C9855B)"
                                   : "linear-gradient(135deg, var(--clr-orange), var(--clr-orange-lt))",
                             color: !editingCouponId && isCouponDuplicate ? "var(--clr-muted)" : "#fff",
                             border: !editingCouponId && isCouponDuplicate ? "1px solid var(--clr-border)" : "none",
@@ -2233,7 +2233,7 @@ export default function AdminPage() {
               <div>
                 {/* Header with Search and Filter tools */}
                 <div style={{
-                  background: "rgba(14, 19, 38, 0.4)",
+                  background: "rgba(21, 18, 16, 0.4)",
                   backdropFilter: "blur(16px)",
                   WebkitBackdropFilter: "blur(16px)",
                   border: "1px solid rgba(255, 255, 255, 0.04)",
@@ -2332,7 +2332,7 @@ export default function AdminPage() {
                 ) : filteredCoupons.length === 0 ? (
                   <div style={{
                     textAlign: "center", padding: "4rem 2rem",
-                    background: "rgba(14, 19, 38, 0.3)", border: "2px dashed var(--clr-border)",
+                    background: "rgba(21, 18, 16, 0.3)", border: "2px dashed var(--clr-border)",
                     borderRadius: "1.25rem", color: "var(--clr-muted)",
                   }}>
                     <Ticket size={40} style={{ margin: "0 auto 1rem", opacity: 0.15 }} />
@@ -2471,7 +2471,7 @@ export default function AdminPage() {
                         justifyContent: "center", 
                         gap: "0.4rem", 
                         marginTop: "1.5rem",
-                        background: "rgba(14, 19, 38, 0.2)",
+                        background: "rgba(21, 18, 16, 0.2)",
                         padding: "0.6rem",
                         borderRadius: "0.85rem",
                         border: "1px solid var(--clr-border)"
@@ -2576,7 +2576,7 @@ export default function AdminPage() {
               {brokenLinks === null && !checkingLinks && (
                 <div style={{
                   textAlign: "center", padding: "4rem 2rem",
-                  background: "rgba(14,19,38,0.4)", borderRadius: "1.25rem",
+                  background: "rgba(21, 18, 16,0.4)", borderRadius: "1.25rem",
                   border: "1px dashed rgba(255,255,255,0.07)",
                 }}>
                   <AlertTriangle size={40} color="rgba(255,255,255,0.15)" style={{ marginBottom: "1rem" }} />
@@ -2590,7 +2590,7 @@ export default function AdminPage() {
               {checkingLinks && (
                 <div style={{
                   textAlign: "center", padding: "4rem 2rem",
-                  background: "rgba(14,19,38,0.4)", borderRadius: "1.25rem",
+                  background: "rgba(21, 18, 16,0.4)", borderRadius: "1.25rem",
                   border: "1px solid rgba(255,255,255,0.04)",
                 }}>
                   <Loader size={36} color="#f87171" style={{ animation: "spin 1s linear infinite", marginBottom: "1rem" }} />

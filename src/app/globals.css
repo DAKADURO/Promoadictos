@@ -2,25 +2,35 @@
    DESIGN TOKENS - OBSIDIAN SLATE HIGH-CONVERSION
 ───────────────────────────────────────── */
 :root {
-  --clr-bg:           #0B0F19;
-  --clr-surface:      #111726;
-  --clr-card:         #141C2E;
-  --clr-card-hover:   #1A253D;
-  --clr-border:       rgba(255, 255, 255, 0.08);
-  --clr-border-hover: rgba(99, 102, 241, 0.4);
-  --clr-indigo:       #6366F1;
-  --clr-indigo-lt:    #818CF8;
-  --clr-indigo-bg:    rgba(99, 102, 241, 0.1);
-  --clr-orange:       #FF5722;
-  --clr-orange-lt:    #FF7043;
-  --clr-orange-bg:    rgba(255, 87, 34, 0.1);
-  --clr-purple:       #8B5CF6;
-  --clr-red:          #FF4757;
-  --clr-green:        #10B981;
-  --clr-green-bg:     rgba(16, 185, 129, 0.1);
-  --clr-text:         #F8FAFC;
-  --clr-muted:        #94A3B8;
-  --clr-dim:          #64748B;
+  /* Superficies: negro cálido (no azulado) */
+  --clr-bg:           #0E0C0A;
+  --clr-surface:      #151210;
+  --clr-card:         #1A1613;
+  --clr-card-hover:   #221D18;
+  /* Bordes de 1px translúcidos en vez de sombras pesadas */
+  --clr-border:       rgba(255, 244, 230, 0.09);
+  --clr-border-hover: rgba(255, 90, 31, 0.5);
+  /* Acento dominante: naranja de marca (compra / CTA) */
+  --clr-orange:       #FF5A1F;
+  --clr-orange-lt:    #FF8450;
+  --clr-orange-bg:    rgba(255, 90, 31, 0.11);
+  /* Acentos secundarios cálidos (antes índigo/morado) */
+  --clr-indigo:       #E8C27A;
+  --clr-indigo-lt:    #F1D6A0;
+  --clr-indigo-bg:    rgba(232, 194, 122, 0.1);
+  --clr-purple:       #C9855B;
+  /* Semánticos */
+  --clr-red:          #FF4B3E;
+  --clr-green:        #34D399;
+  --clr-green-bg:     rgba(52, 211, 153, 0.1);
+  /* Texto: papel cálido */
+  --clr-text:         #F6EFE4;
+  --clr-muted:        #ABA092;
+  --clr-dim:          #7A6F62;
+
+  /* Tipografía */
+  --f-display: var(--font-display), "Iowan Old Style", Georgia, serif;
+  --f-body:    var(--font-body), system-ui, sans-serif;
 
   --radius-xs: 0.375rem;
   --radius-sm: 0.625rem;
@@ -31,9 +41,9 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --shadow-indigo: 0 0 35px rgba(99, 102, 241, 0.25);
-  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 20px 45px -10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(99, 102, 241, 0.18);
+  --shadow-indigo: 0 0 0 1px rgba(232, 194, 122, 0.18);
+  --shadow-card: 0 1px 0 rgba(255, 244, 230, 0.04) inset;
+  --shadow-card-hover: 0 14px 30px -18px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 90, 31, 0.35);
 }
 
 /* ─────────────────────────────────────────
@@ -44,7 +54,7 @@ img { max-width:100%; height:auto; display:block; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body), sans-serif;
   background: var(--clr-bg);
   color: var(--clr-text);
   min-height: 100vh;
@@ -88,7 +98,7 @@ body {
 /* ─────────────────────────────────────────
    TYPOGRAPHY
 ───────────────────────────────────────── */
-.font-display { font-family: var(--font-sora), sans-serif; }
+.font-display { font-family: var(--font-display), sans-serif; }
 
 .gradient-text {
   background: linear-gradient(110deg, var(--clr-orange) 0%, #FFAC3E 55%, var(--clr-orange-lt) 100%);
@@ -105,7 +115,7 @@ body {
 ───────────────────────────────────────── */
 .glass-nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(5,8,16,0.72);
+  background: rgba(10, 8, 6,0.72);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border-bottom: 1px solid var(--clr-border);
@@ -119,7 +129,7 @@ body {
 
 .nav-brand { display: flex; align-items: center; gap: 0.85rem; text-decoration: none; flex-shrink: 0; }
 .nav-brand-logo { height: 50px; width: auto; }
-.nav-brand-name { font-family: var(--font-sora), sans-serif; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.03em; text-transform: uppercase; }
+.nav-brand-name { font-family: var(--font-display), sans-serif; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.03em; text-transform: uppercase; }
 .nav-brand-tagline { font-size: 0.58rem; color: var(--clr-muted); font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; margin-top: 2px; }
 
 /* Nav search */
@@ -151,7 +161,7 @@ body {
   position: absolute;
   top: 100%; left: 0; right: 0;
   margin-top: 0.5rem;
-  background: rgba(10, 15, 30, 0.9);
+  background: rgba(16, 14, 12, 0.9);
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -278,7 +288,7 @@ body {
   height: 36px;
   border-radius: 8px;
   background: var(--clr-indigo-bg);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(232, 194, 122, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,13 +307,13 @@ body {
   cursor: pointer;
 }
 .nav-pill-btn.cupones {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  color: #A78BFA;
+  background: rgba(201, 133, 91, 0.1);
+  border: 1px solid rgba(201, 133, 91, 0.25);
+  color: #DDA27C;
 }
 .nav-pill-btn.cupones:hover {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(201, 133, 91, 0.2);
+  border-color: rgba(201, 133, 91, 0.45);
 }
 .nav-pill-btn.terminales {
   background: rgba(16, 185, 129, 0.1);
@@ -405,7 +415,7 @@ body {
 
 .spotlight-card {
   position: relative;
-  background: rgba(10, 15, 30, 0.7);
+  background: rgba(16, 14, 12, 0.7);
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border: 1px solid rgba(255, 92, 0, 0.25);
@@ -648,7 +658,7 @@ body {
 }
 
 .hero-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: clamp(2rem, 4.5vw, 3.5rem);
   font-weight: 800; line-height: 1.1; letter-spacing: -0.04em;
 }
@@ -697,7 +707,7 @@ body {
 ───────────────────────────────────────── */
 .unified-filter-toolbar {
   margin-bottom: 1.5rem;
-  background: rgba(20, 28, 46, 0.6);
+  background: rgba(26, 22, 19, 0.6);
   backdrop-filter: blur(12px);
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
@@ -731,7 +741,7 @@ body {
 }
 .filter-pill.active {
   background: var(--clr-indigo); border-color: var(--clr-indigo);
-  color: #fff; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  color: #fff; box-shadow: 0 4px 14px rgba(232, 194, 122, 0.35);
 }
 
 .filter-controls-row {
@@ -761,7 +771,7 @@ body {
 }
 
 .filter-select {
-  background: rgba(11, 15, 25, 0.8);
+  background: rgba(14, 12, 10, 0.8);
   border: 1px solid var(--clr-border);
   color: var(--clr-text);
   font-size: 0.8rem;
@@ -774,8 +784,8 @@ body {
   font-family: inherit;
 }
 .filter-select:hover, .filter-select:focus {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: rgba(17, 23, 38, 0.9);
+  border-color: rgba(232, 194, 122, 0.4);
+  background: rgba(21, 18, 16, 0.9);
 }
 .filter-select.sort {
   border-color: rgba(255, 87, 34, 0.3);
@@ -817,7 +827,7 @@ body {
 .section-header { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; }
 .section-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--clr-orange); box-shadow: 0 0 12px var(--clr-orange); }
 .section-title {
-  font-family: var(--font-sora), sans-serif; font-size: 1.05rem; font-weight: 700;
+  font-family: var(--font-display), sans-serif; font-size: 1.05rem; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--clr-muted);
 }
 
@@ -1019,7 +1029,7 @@ body {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(11, 15, 25, 0.85);
+  background: rgba(14, 12, 10, 0.85);
   backdrop-filter: blur(8px);
   color: #F8FAFC;
   font-size: 0.68rem;
@@ -1047,7 +1057,7 @@ body {
 }
 .price-trend.down { background: rgba(16, 185, 129, 0.9); color: #fff; }
 .price-trend.hot { background: rgba(255, 87, 34, 0.9); color: #fff; }
-.price-trend.historic-low { background: rgba(139, 92, 246, 0.9); color: #fff; }
+.price-trend.historic-low { background: rgba(201, 133, 91, 0.9); color: #fff; }
 
 /* Card Content Body */
 .card-body {
@@ -1114,7 +1124,7 @@ body {
 }
 
 .card-price {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
   color: #10B981;
@@ -1203,7 +1213,7 @@ body {
   background: rgba(255,255,255,0.03); border: 1px solid var(--clr-border);
   font-size: 0.8rem; color: var(--clr-muted);
 }
-.stat-value { font-weight: 800; font-family: var(--font-sora), sans-serif; color: var(--clr-text); }
+.stat-value { font-weight: 800; font-family: var(--font-display), sans-serif; color: var(--clr-text); }
 
 /* ─────────────────────────────────────────
    BUTTONS
@@ -1251,10 +1261,10 @@ body {
 }
 .footer-col a:hover { color: var(--clr-orange-lt); }
 .footer-col-title {
-  font-family: var(--font-sora), sans-serif; font-weight: 700; font-size: 0.78rem;
+  font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 0.78rem;
   text-transform: uppercase; letter-spacing: 0.06em; color: var(--clr-muted); margin-bottom: 0.2rem;
 }
-.footer-brand { font-family: var(--font-sora), sans-serif; font-weight: 800; font-size: 1.1rem; }
+.footer-brand { font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 1.1rem; }
 .footer-tagline { font-size: 0.85rem; color: var(--clr-muted); max-width: 32ch; }
 .footer-social { display: flex; gap: 0.6rem; margin-top: 0.4rem; }
 .footer-social-link {
@@ -1300,7 +1310,7 @@ body {
 
 .offer-detail-info { display: flex; flex-direction: column; gap: 0.85rem; }
 .offer-detail-title {
-  font-family: var(--font-sora), sans-serif; font-size: 1.6rem; font-weight: 800;
+  font-family: var(--font-display), sans-serif; font-size: 1.6rem; font-weight: 800;
   line-height: 1.25; color: var(--clr-text);
 }
 .offer-detail-description { color: var(--clr-muted); font-size: 0.95rem; line-height: 1.6; }
@@ -1632,7 +1642,7 @@ body {
   padding: 0.5rem 1rem;
   background: rgba(124, 58, 237, 0.08);
   border: 1px solid rgba(124, 58, 237, 0.2);
-  color: #a78bfa !important;
+  color: #DDA27C !important;
   font-size: 0.8rem;
   font-weight: 700;
   border-radius: var(--radius-pill);
@@ -1713,7 +1723,7 @@ body {
 }
 
 .point-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: clamp(1.85rem, 3.5vw, 2.5rem);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -1826,7 +1836,7 @@ body {
   left: 12px;
   background: rgba(124, 58, 237, 0.15);
   border: 1px solid rgba(124, 58, 237, 0.35);
-  color: #A78BFA;
+  color: #DDA27C;
   font-size: 0.62rem;
   font-weight: 700;
   padding: 0.25rem 0.55rem;
@@ -1851,7 +1861,7 @@ body {
 }
 
 .point-card-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--clr-text);
@@ -1877,7 +1887,7 @@ body {
 }
 
 .point-card-price {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 1.85rem;
   font-weight: 800;
   color: var(--clr-text);
@@ -2011,7 +2021,7 @@ body {
 }
 
 .price-modal-card {
-  background: rgba(10, 15, 30, 0.85);
+  background: rgba(16, 14, 12, 0.85);
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2122,7 +2132,7 @@ body {
 }
 
 .price-modal-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.35;
@@ -2139,7 +2149,7 @@ body {
   font-size: 2rem;
   font-weight: 900;
   color: var(--clr-text);
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
 }
 
 .price-modal-original {
@@ -2611,7 +2621,7 @@ span.price-modal-desktop-only {
 }
 
 .savings-card {
-  background: rgba(14, 19, 38, 0.45);
+  background: rgba(21, 18, 16, 0.45);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -2685,7 +2695,7 @@ span.price-modal-desktop-only {
 }
 
 .savings-card-value {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--clr-text);
@@ -2712,7 +2722,7 @@ span.price-modal-desktop-only {
 }
 
 .hot-deal-card {
-  background: linear-gradient(135deg, rgba(14, 19, 38, 0.6) 0%, rgba(10, 15, 30, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(21, 18, 16, 0.6) 0%, rgba(16, 14, 12, 0.8) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 92, 0, 0.15);
@@ -3078,7 +3088,7 @@ span.price-modal-desktop-only {
 }
 
 .sidebar-section-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -3171,7 +3181,7 @@ span.price-modal-desktop-only {
   .portal-sidebar .hot-deal-card {
     padding: 0.65rem 0.75rem;
     border-radius: 10px;
-    background: rgba(14, 19, 38, 0.45);
+    background: rgba(21, 18, 16, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
@@ -3321,7 +3331,7 @@ span.price-modal-desktop-only {
 .sidebar-subscribe-card {
   margin-top: 2.5rem;
   padding: 1.5rem;
-  background: rgba(14, 19, 38, 0.45);
+  background: rgba(21, 18, 16, 0.45);
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
   backdrop-filter: blur(12px);
@@ -3379,7 +3389,7 @@ span.price-modal-desktop-only {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  background: rgba(14, 19, 38, 0.45);
+  background: rgba(21, 18, 16, 0.45);
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
   text-decoration: none;
@@ -3596,7 +3606,7 @@ span.price-modal-desktop-only {
 }
 
 .coupons-title {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: clamp(2.2rem, 5vw, 3.5rem);
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -3644,7 +3654,7 @@ span.price-modal-desktop-only {
 .store-filter-pill.active {
   background: rgba(124, 58, 237, 0.08);
   border-color: var(--clr-purple);
-  color: #a78bfa;
+  color: #DDA27C;
   box-shadow: 0 0 16px rgba(124, 58, 237, 0.12);
 }
 
@@ -3657,7 +3667,7 @@ span.price-modal-desktop-only {
 
 .coupon-card {
   position: relative;
-  background: rgba(14, 19, 38, 0.45);
+  background: rgba(21, 18, 16, 0.45);
   backdrop-filter: blur(16px) saturate(1.2);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -3753,7 +3763,7 @@ span.price-modal-desktop-only {
 .coupon-store-tag.general {
   background: rgba(124, 58, 237, 0.08);
   border: 1px solid rgba(124, 58, 237, 0.2);
-  color: #a78bfa;
+  color: #DDA27C;
 }
 
 .coupon-featured-badge {
@@ -3770,7 +3780,7 @@ span.price-modal-desktop-only {
 }
 
 .coupon-discount-value {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display), sans-serif;
   font-size: 2.2rem;
   font-weight: 900;
   color: var(--clr-text);
