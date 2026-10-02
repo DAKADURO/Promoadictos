@@ -81,13 +81,23 @@ export async function POST(req) {
         id: true,
         title: true,
         affiliateUrl: true,
+        imageUrl: true,
       }
     });
+    // Los enlaces cortos meli.la no revelan el producto: también se compara
+    // la imagen y un título normalizado (sin acentos/símbolos) para no duplicar.
+    const norm = (t) => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 60);
+    const titleNorm = norm(data.title);
+    const imageKey = (u) => (u || "").split("?")[0].trim();
+    const newImage = /mlstatic\.com/.test(data.imageUrl || "") ? imageKey(data.imageUrl) : "";
 
     const isDuplicate = existingOffers.some(o => {
       // Comparar títulos ignorando mayúsculas y espacios extremos
       if (o.title.toLowerCase().trim() === titleLower) return true;
       
+      if (titleNorm && norm(o.title) === titleNorm) return true;
+      if (newImage && imageKey(o.imageUrl) === newImage) return true;
+
       // Comparar identificadores extraídos de las URLs
       const existingProductId = extractProductId(o.affiliateUrl);
       if (urlProductId && existingProductId && urlProductId === existingProductId) return true;
