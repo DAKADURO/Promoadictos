@@ -191,7 +191,7 @@ const CATEGORY_KEYWORDS = {
     "consola", "videojuegos", "rtx", "ryzen", "tarjeta gráfica"
   ],
   Audio: [
-    "audifonos", "auriculares", "bluetooth", "bocina", "parlante", "soundcore",
+    "audifonos", "auriculares", "bocina", "parlante", "soundcore",
     "in-ear", "diadema", "microfono", "altavoz", "soundbar", "barra de sonido", "audio"
   ],
   Tecnología: [
@@ -199,13 +199,13 @@ const CATEGORY_KEYWORDS = {
     "computadora", "pantalla", "smart watch", "smartwatch", "reloj inteligente",
     "cargador", "tablet", "kindle", "cámara", "gopro", "point", "hidrogel",
     "procesador", "memoria ram", "disco duro", "ssd", "intel", "amd", "monitor",
-    "electrónica", "tecnología"
+    "televisor", "television", "smart tv", "tv ", "electrónica", "tecnología"
   ],
   Hogar: [
     "hogar", "mueble", "jardín", "jardin", "sarten", "olla", "cocina", "licuadora",
     "aspiradora", "colchon", "almohada", "sabanas", "vaso", "termo", "comedor",
     "cuchillo", "herramientas", "foco", "led", "freidora", "cafetera",
-    "aire acondicionado", "ventilador", "herramienta", "decoración", "batería de cocina"
+    "lampara", "almohadas", "aire acondicionado", "ventilador", "herramienta", "decoración", "batería de cocina"
   ],
   Moda: [
     "moda", "ropa", "calzado", "tenis", "playera", "pantalon", "sudadera",
@@ -224,19 +224,23 @@ const CATEGORY_KEYWORDS = {
   ]
 };
 
-// Classify category intelligently based on title, category name, and entire path
+// Classify category: the official ML category path is the most reliable signal,
+// so it goes first; title keywords (matched at word start, accent-insensitive)
+// are only the fallback when ML gave us no path.
+const stripAccents = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 function classifyCategory(title, categoryName, categoryPath) {
-  const pathStr = Array.isArray(categoryPath) ? categoryPath.join(" ") : "";
-  const searchText = `${title} ${categoryName || ""} ${pathStr}`.toLowerCase();
-
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(kw => searchText.includes(kw))) {
-      return category;
-    }
-  }
-
   const mapped = mapMercadoLibreCategory(categoryPath);
   if (mapped) return mapped;
+
+  const searchText = stripAccents(`${title} ${categoryName || ""}`);
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    const hit = keywords.some((kw) => {
+      const k = stripAccents(kw).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`(^|[^a-z0-9])${k}`).test(searchText);
+    });
+    if (hit) return category;
+  }
 
   return "General";
 }
@@ -250,7 +254,8 @@ function mapMercadoLibreCategory(path) {
   if (topLevel.includes("belleza") || topLevel.includes("cuidado personal")) return "Belleza";
   if (topLevel.includes("computación") || topLevel.includes("computacion") || topLevel.includes("celulares") || topLevel.includes("cámaras") || topLevel.includes("camaras")) return "Tecnología";
   if (topLevel.includes("electrónica") || topLevel.includes("electronica")) {
-    if (path.some(p => p.toLowerCase().includes("audio") || p.toLowerCase().includes("audífonos") || p.toLowerCase().includes("bocina"))) {
+    // Se ignora el nivel superior ("Electrónica, Audio y Video" contiene "audio" también para TVs).
+    if (path.slice(1).some(p => /audifonos|audífonos|bocina|altavoz|barra de sonido|^audio$/i.test(p.trim()) || /\baudio\b/i.test(p) && !/video/i.test(p))) {
       return "Audio";
     }
     return "Tecnología";
